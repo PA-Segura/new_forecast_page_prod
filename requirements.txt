@@ -1,0 +1,28 @@
+# Dependencias para el sistema de pronósticos de calidad del aire
+# SISTEMA POSTGRESQL DE PRODUCCIÓN - Credenciales AMATE-SOLOREAD
+
+# Framework web
+dash==2.16.1
+dash-bootstrap-components==1.5.0
+
+# Base de datos
+psycopg2-binary>=2.9.0
+
+# Análisis de datos
+pandas==2.1.4
+numpy==1.24.3
+
+# Gráficos y visualización
+plotly==5.17.0
+
+# Utilidades
+python-dotenv>=1.0.0
+
+# Estadísticas (para cálculos de probabilidad)
+scipy>=1.10.0
+
+# Tareas programadas
+schedule==1.2.0
+
+# Desarrollo y testing (opcional)
+pytest>=7.0.0 
