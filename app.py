@@ -454,3 +454,8 @@ if __name__ == '__main__':
                 print(f"⚠️ Error cerrando conexiones SQLite: {e}")
         
         # PostgreSQL se cierra automáticamente con su context manager 
+
+# Instancias globales para Gunicorn
+app_instance = create_app()
+app = app_instance.app
+server = app_instance.server 
