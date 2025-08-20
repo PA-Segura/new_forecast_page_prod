@@ -166,7 +166,7 @@ class AirQualityDataService:
                         print(f"✅ Usando datos históricos reales de {reference_date} para {station}")
                         # Extraer las 24 horas de pronóstico
                         df_pred['fecha'] = pd.to_datetime(df_pred['fecha'])
-                        timestamps = [df_pred['fecha'][0] + pd.Timedelta(hours=i) for i in range(1, 25)]
+                        timestamps = [df_pred['fecha'][0] + pd.Timedelta(hours=i) for i in range(0, 24)]
                         values = df_pred.loc[0, 'hour_p01':'hour_p24'].values
                         
                         return {
@@ -205,7 +205,7 @@ class AirQualityDataService:
                     if not station_data.empty:
                         # Extraer las 24 horas de pronóstico
                         station_data['fecha'] = pd.to_datetime(station_data['fecha'])
-                        timestamps = [station_data['fecha'].iloc[0] + pd.Timedelta(hours=i) for i in range(1, 25)]
+                        timestamps = [station_data['fecha'].iloc[0] + pd.Timedelta(hours=i) for i in range(0, 24)]
                         values = station_data.loc[station_data.index[0], 'hour_p01':'hour_p24'].values
                         
                         print(f"✅ Pronóstico SQLite obtenido para {station}: {len(values)} valores")
@@ -234,7 +234,7 @@ class AirQualityDataService:
             
             # Extraer las 24 horas de pronóstico
             df_pred['fecha'] = pd.to_datetime(df_pred['fecha'])
-            timestamps = [df_pred['fecha'][0] + pd.Timedelta(hours=i) for i in range(1, 25)]
+            timestamps = [df_pred['fecha'][0] + pd.Timedelta(hours=i) for i in range(0, 24)]
             values = df_pred.loc[0, 'hour_p01':'hour_p24'].values
             
             print(f"✅ Pronóstico PostgreSQL obtenido para {station}: {len(values)} valores")
@@ -498,7 +498,7 @@ class AirQualityDataService:
             forecast_vector = np.maximum(0, base_value + hourly_pattern + noise)
             
             timestamp_base = datetime.strptime(fecha, '%Y-%m-%d %H:%M:%S')
-            timestamps = [timestamp_base + timedelta(hours=i) for i in range(1, 25)]
+            timestamps = [timestamp_base + timedelta(hours=i) for i in range(0, 24)]
             
             results[st] = {
                 'station': st,
@@ -544,7 +544,7 @@ class AirQualityDataService:
         np.random.seed(None)
         
         timestamp_base = datetime.strptime(fecha, '%Y-%m-%d %H:%M:%S')
-        timestamps = [timestamp_base + timedelta(hours=i) for i in range(1, 25)]
+        timestamps = [timestamp_base + timedelta(hours=i) for i in range(0, 24)]
         
         # Estructura que refleja la realidad: mean, min, max (NO por estación)
         result = {
@@ -985,7 +985,7 @@ class EfficientAirQualityDataService(AirQualityDataService):
                     stations_list = list(self.stations_dict.keys())
                     stations_str = "','".join(stations_list)
                     
-                    columnas_hp = ', '.join([f'hour_p{str(i).zfill(2)}' for i in range(1, 25)])
+                    columnas_hp = ', '.join([f'hour_p{str(i).zfill(2)}' for i in range(0, 24)])
                     
                     efficient_query = f"""
                         SELECT fecha, id_est, {columnas_hp} 
@@ -1016,7 +1016,7 @@ class EfficientAirQualityDataService(AirQualityDataService):
                         for _, row in df_batch.iterrows():
                             station_code = row['id_est']
                             forecast_date = pd.to_datetime(row['fecha'])
-                            timestamps = [forecast_date + pd.Timedelta(hours=i) for i in range(1, 25)]
+                            timestamps = [forecast_date + pd.Timedelta(hours=i) for i in range(0, 24)]
                             forecast_vector = row.loc['hour_p01':'hour_p24'].values
                             
                             batch_forecasts[station_code] = {
@@ -1097,7 +1097,7 @@ class EfficientAirQualityDataService(AirQualityDataService):
                 forecast_vector = row.loc['hour_p01':'hour_p24'].values
                 
                 # Generar timestamps
-                timestamps = [base_date + pd.Timedelta(hours=i) for i in range(1, 25)]
+                timestamps = [base_date + pd.Timedelta(hours=i) for i in range(0, 24)]
                 
                 forecast_batch[station] = {
                     'forecast_vector': forecast_vector,
@@ -1322,7 +1322,7 @@ class EfficientAirQualityDataService(AirQualityDataService):
         
         batch_forecasts = {}
         for station in stations_list:
-            timestamps = [base_date + timedelta(hours=i) for i in range(1, 25)]
+            timestamps = [base_date + timedelta(hours=i) for i in range(0, 24)]
             forecast_vector = np.random.uniform(20, 180, 24).tolist()
             
             batch_forecasts[station] = {

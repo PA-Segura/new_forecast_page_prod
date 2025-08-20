@@ -237,6 +237,25 @@ class AirQualityApp:
         self.app.layout = html.Div([
             create_navbar(),
             
+            # Banner de mantenimiento
+            html.Div([
+                html.Div([
+                    html.Span("🚧", style={'font-size': '24px', 'margin-right': '10px'}),
+                    html.Span("Sitio en fase de pruebas y depuración.", 
+                             style={'font-size': '16px', 'font-weight': 'bold'})
+                ], style={
+                    'background-color': '#FFF3CD',
+                    'color': '#856404',
+                    'border': '1px solid #FFEAA7',
+                    'padding': '15px 20px',
+                    'text-align': 'center',
+                    'border-radius': '8px',
+                    'margin': '20px',
+                    'box-shadow': '0 2px 4px rgba(0,0,0,0.1)',
+                    'font-family': 'Helvetica, Arial, sans-serif'
+                })
+            ]),
+            
             # Contenedor para las páginas con fondo
             dash.page_container
         ], style={
