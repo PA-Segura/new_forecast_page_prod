@@ -225,20 +225,54 @@ class AcercaPage:
             # Sección: Cómo usar el sistema
             dbc.Card([
                 dbc.CardHeader([
-                    html.H4("📖 Cómo usar el sistema", className="mb-0")
+                    html.H4("Primeros Pasos", className="mb-0")
                 ], style={'background-color': COLORS['gradient_start'], 'color': 'white'}),
                 dbc.CardBody([
                     html.Div([
                         html.H5("Selección de Estación"),
                         html.P([
-                            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. ",
-                            "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+                            "En menu desplegable se puede seleccionar la estación de la que se quiera consultar el pronóstico",
+                            #"Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
                         ]),
-                        html.H5("Interpretación del Mapa"),
+                        html.Div([
+                            html.Img(
+                                src="assets/sel_est_dropmenu.png",
+                                alt="Menú desplegable para selección de estación",
+                                style={
+                                    'width': '100%',
+                                    'max-width': '400px',
+                                    'height': 'auto',
+                                    'border-radius': '8px',
+                                    'box-shadow': '0 2px 8px rgba(0,0,0,0.1)',
+                                    'margin': '15px 0',
+                                    'display': 'block',
+                                    'margin-left': 'auto',
+                                    'margin-right': 'auto'
+                                }
+                            )
+                        ], style={'text-align': 'center'}),
+                        html.H5("Mapa"),
                         html.P([
-                            "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. ",
-                            "Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+                            "Mapa interactivo de visualización de calidad del aire por ozono, presenta el valor de concentración máxima de ozono pronosticada para las próximas 24 horas. Se muestran clasificación de pronóstico con base en indicadores de calidad del aire (Buena, Aceptable, Mala, Muy Mala, Extremadamente Mala). Al posicionar el puntero sobre una estación se despliega un cuadro de información con el valor de concentración esperada, clave y nombre de la estación correspondiente.",
+                            #"Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
                         ]),
+                        html.Div([
+                            html.Img(
+                                src="assets/mapa_forecast.png",
+                                alt="Mapa de pronóstico de calidad del aire",
+                                style={
+                                    'width': '100%',
+                                    'max-width': '500px',
+                                    'height': 'auto',
+                                    'border-radius': '8px',
+                                    'box-shadow': '0 2px 8px rgba(0,0,0,0.1)',
+                                    'margin': '15px 0',
+                                    'display': 'block',
+                                    'margin-left': 'auto',
+                                    'margin-right': 'auto'
+                                }
+                            )
+                        ], style={'text-align': 'center'}),
                         html.H5("Lectura de Gráficos"),
                         html.P([
                             "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, ",
@@ -255,20 +289,14 @@ class AcercaPage:
                 ], style={'background-color': COLORS['gradient_end'], 'color': 'white'}),
                 dbc.CardBody([
                     html.Div([
-                        html.H5("Redes Neuronales"),
+                        #html.H5("Redes Neuronales"),
                         html.P([
-                            "Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, ",
-                            "sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt."
-                        ]),
-                        html.H5("Datos de Entrada"),
-                        html.P([
-                            "Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, ",
-                            "sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem."
-                        ]),
-                        html.H5("Validación del Modelo"),
-                        html.P([
-                            "Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam, ",
-                            "nisi ut aliquid ex ea commodi consequatur? Quis autem vel eum iure reprehenderit."
+                            "El pronóstico basado en aprendizaje automático integra observaciones recientes de calidad del aire con el pronóstico meteorológico generado con el modelo físico WRF-ARW. El modelo de pronóstico usa una arquitectura híbrida basada en un módulo autorregresivo para series temporales y un módulo para la asimilación de pronósticos meteorológicos mediante Vision Transformers y redes neuronales densas implementado en Pytorch. ",
+                            html.Br(),
+                            html.Br(),
+                            "Datos de series de datos de contaminantes: ozono troposférico (O₃), monóxido de carbono (CO), dióxido de nitrógeno (NO₂), partículas menores a 10 micrómetros (PM₁₀), partículas menores a 2.5 micrómetros (PM₂.₅), óxidos de nitrógeno (NOₓ), óxido nítrico (NO) y dióxido de azufre (SO₂), y salidas de modelo WRF desarrollado por el grupo Interacción Océano Atmósfera del ICAyCC y disponible en el siguiente ",
+                            html.A("link", href="http://grupo-ioa.atmosfera.unam.mx/pronosticos/index.php/meteorologia", target="_blank", style={'color': '#007bff', 'text-decoration': 'underline'}),
+                            "."
                         ])
                     ])
                 ])
