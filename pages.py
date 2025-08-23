@@ -225,7 +225,7 @@ class AcercaPage:
             # Sección: Cómo usar el sistema
             dbc.Card([
                 dbc.CardHeader([
-                    html.H4("Primeros Pasos", className="mb-0")
+                    html.H4("Componentes del visualizador de pronóstico", className="mb-0")
                 ], style={'background-color': COLORS['gradient_start'], 'color': 'white'}),
                 dbc.CardBody([
                     html.Div([
@@ -273,11 +273,50 @@ class AcercaPage:
                                 }
                             )
                         ], style={'text-align': 'center'}),
-                        html.H5("Lectura de Gráficos"),
+                        html.H5("Series de tiempo de ozono"),
                         html.P([
-                            "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, ",
-                            "totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo."
-                        ])
+                            "Serie de tiempo de concentraciones horarias de ozono. La estación seleccionada se muestra en el encabezado de la serie de tiempo (en este caso la estación Villa de las Flores), se muestra en rojo las concentraciones pronosticadas para las próximas 24 horas, y en azul marino se muestran las concentraciones de 48 horas de observaciones registradas en la estación seleccionada, en gris claro, y azul claro se muestran pronósticos y observaciones de las otras estaciones de monitoreo.",
+                            #"totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae dicta sunt explicabo."
+                        ]),  #En la parte superior se muestra la fecha y hora del pronóstico.
+                        html.Div([
+                            html.Img(
+                                src="assets/serie_tiempo_ozono.png",
+                                alt="Serie de tiempo de concentraciones de ozono",
+                                style={
+                                    'width': '100%',
+                                    'max-width': '500px',
+                                    'height': 'auto',
+                                    'border-radius': '8px',
+                                    'box-shadow': '0 2px 8px rgba(0,0,0,0.1)',
+                                    'margin': '15px 0',
+                                    'display': 'block',
+                                    'margin-left': 'auto',
+                                    'margin-right': 'auto'
+                                }
+                            )
+                        ], style={'text-align': 'center'}),
+                        html.H5("Series de tiempo de materiales particulados"),
+                        html.P([
+                            "Los contenedores de series de tiempo de contaminantes por material particulado, PM10,  y PM2.5 (en µg/m³), despliegan las últimas observaciones disponibles para estos contaminantes, así como un pronóstico regional para las siguientes 24 horas. En los pronósticos de cada contaminante se muestran 3 series de tiempo principales que corresponde a los valores mínimos, promedio y máximos pronosticados para toda la región. En la figura se resalta la estación PED (Pedregal). Los valores pronosticados corresponden a los valores mínimos, promdedio y máximos regionales generados por el modelo. ",
+                            #Serie de tiempo de concentraciones horarias de partículas PM₁₀ y PM₂.₅. Similar a la serie de ozono, se muestran las concentraciones pronosticadas para las próximas 24 horas y las observaciones históricas de la estación seleccionada y otras estaciones de monitoreo."
+                        ]),
+                        html.Div([
+                            html.Img(
+                                src="assets/series_tiempo_pms.png",
+                                alt="Serie de tiempo de concentraciones de partículas",
+                                style={
+                                    'width': '100%',
+                                    'max-width': '500px',
+                                    'height': 'auto',
+                                    'border-radius': '8px',
+                                    'box-shadow': '0 2px 8px rgba(0,0,0,0.1)',
+                                    'margin': '15px 0',
+                                    'display': 'block',
+                                    'margin-left': 'auto',
+                                    'margin-right': 'auto'
+                                }
+                            )
+                        ], style={'text-align': 'center'}),
                     ])
                 ])
             ], className="mb-4"),
@@ -302,68 +341,67 @@ class AcercaPage:
                 ])
             ], className="mb-4"),
             
-            # Sección: Espacios para imágenes explicativas
-            dbc.Card([
-                dbc.CardHeader([
-                    html.H4("📊 Visualizaciones Explicativas", className="mb-0")
-                ], style={'background-color': COLORS['card'], 'color': COLORS['text']}),
-                dbc.CardBody([
-                    dbc.Row([
-                        dbc.Col([
-                            html.Div([
-                                html.H5("Diagrama del Modelo"),
-                                html.Div([
-                                    html.Div([
-                                        "📊 Diagrama del Modelo Neural",
-                                        html.Br(),
-                                        html.Small("(Imagen en desarrollo)", style={'color': '#666'})
-                                    ], style={
-                                        'width': '100%',
-                                        'height': '200px',
-                                        'border': '2px dashed #ccc',
-                                        'border-radius': '8px',
-                                        'display': 'flex',
-                                        'align-items': 'center',
-                                        'justify-content': 'center',
-                                        'flex-direction': 'column',
-                                        'text-align': 'center',
-                                        'background-color': '#f8f9fa',
-                                        'color': '#6c757d'
-                                    }),
-                                    html.P("Espacio para diagrama explicativo del modelo de pronóstico", 
-                                           style={'text-align': 'center', 'color': '#666', 'margin-top': '10px'})
-                                ])
-                            ])
-                        ], width=6),
-                        dbc.Col([
-                            html.Div([
-                                html.H5("Flujo de Datos"),
-                                html.Div([
-                                    html.Div([
-                                        "🔄 Diagrama de Flujo de Datos",
-                                        html.Br(),
-                                        html.Small("(Imagen en desarrollo)", style={'color': '#666'})
-                                    ], style={
-                                        'width': '100%',
-                                        'height': '200px',
-                                        'border': '2px dashed #ccc',
-                                        'border-radius': '8px',
-                                        'background-color': '#f8f9fa',
-                                        'color': '#6c757d',
-                                        'display': 'flex',
-                                        'align-items': 'center',
-                                        'justify-content': 'center',
-                                        'flex-direction': 'column',
-                                        'text-align': 'center'
-                                    }),
-                                    html.P("Espacio para diagrama del flujo de datos", 
-                                           style={'text-align': 'center', 'color': '#666', 'margin-top': '10px'})
-                                ])
-                            ])
-                        ], width=6)
-                    ])
-                ])
-            ], className="mb-4")
+            # Sección: Espacios para imágenes explicativas (COMENTADA)
+            # dbc.Card([
+            #     dbc.CardHeader([
+            #         html.H4("📊 Visualizaciones Explicativas", className="mb-0")
+            #     ], style={'background-color': COLORS['card'], 'color': COLORS['text']}),
+            #     dbc.CardBody([
+            #         dbc.Row([
+            #             dbc.Col([
+            #             html.Div([
+            #                 html.H5("Diagrama del Modelo"),
+            #             html.Div([
+            #                     html.Div([
+            #                         "📊 Diagrama del Modelo Neural",
+            #                         html.Br(),
+            #                         html.Small("(Imagen en desarrollo)", style={'color': '#666'})
+            #                     ], style={
+            #                         'width': '100%',
+            #                         'height': '200px',
+            #                         'border': '2px dashed #ccc',
+            #                         'border-radius': '8px',
+            #                         'display': 'flex',
+            #                         'align-items': 'center',
+            #                         'justify-content': 'center',
+            #                         'flex-direction': 'column',
+            #                         'text-align': 'center',
+            #                         'background-color': '#f8f9fa',
+            #                         'color': '#6c757d'
+            #                     }),
+            #                     html.P("Espacio para diagrama explicativo del modelo de pronóstico", 
+            #                            style={'text-align': 'center', 'color': '#666', 'margin-top': '10px'})
+            #                 ])
+            #             ])
+            #         ], width=6),
+            #         dbc.Col([
+            #             html.Div([
+            #                 html.H5("Flujo de Datos"),
+            #             html.Div([
+            #                     html.Div([
+            #                         "🔄 Diagrama de Flujo de Datos",
+            #                         html.Br(),
+            #                         html.Small("(Imagen en desarrollo)", style={'color': '#666'})
+            #                     ], style={
+            #                         'width': '100%',
+            #                         'height': '200px',
+            #                         'border': '2px dashed #ccc',
+            #                         'border-radius': '8px',
+            #                         'background-color': '#f8f9fa',
+            #                         'color': '#6c757d',
+            #                         'display': 'flex',
+            #                         'align-items': 'center',
+            #                         'justify-content': 'center',
+            #                         'flex-direction': 'column',
+            #                         'text-align': 'center'
+            #                     }),
+            #                     html.P("Espacio para diagrama del flujo de datos", 
+            #                            style={'color': '#666', 'margin-top': '10px'})
+            #                 ])
+            #             ])
+            #         ], width=6)
+            #     ])
+            # ], className="mb-4")
         ], style=STYLES['container'])
     
     @staticmethod
@@ -377,28 +415,33 @@ class AcercaPage:
                 dbc.CardBody([
                     dbc.Row([
                         dbc.Col([
-                            html.H5("Desarrollo"),
+                            html.H5("Autores"),
                             html.P([
-                                "Lorem ipsum dolor sit amet, consectetur adipiscing elit. ",
-                                "Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+                                "Olmo Zavala-Romero, Pedro A. Segura-Chavez, Pablo Camacho-Gonzalez, Jorge Zavala-Hidalgo, ",
+                                "Pavel Oropeza-Alfaro, Rosario Romero-Centeno, Octavio Gomez-Ramos"
                             ]),
                             html.H5("Contacto"),
                             html.P([
-                                "Email: contacto@pronostico-aire.com",
-                                html.Br(),
-                                "Teléfono: +52 55 1234 5678"
+                                html.Strong("Pedro A. Segura-Chavez: "),
+                                html.A("psegura@atmosfera.unam.mx", href="mailto:psegura@atmosfera.unam.mx", style={'color': '#007bff'})
                             ])
                         ], width=6),
                         dbc.Col([
                             html.H5("Instituciones Participantes"),
                             html.P([
-                                "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris ",
-                                "nisi ut aliquip ex ea commodo consequat."
+                                html.Strong("Universidad Nacional Autónoma de México"), html.Br(),
+                                "Instituto de Ciencias de la Atmósfera y Cambio Climático", html.Br(),
+                                "Coyoacán, Ciudad de México 04510, México", html.Br(),
+                                html.Br(),
+                                html.Strong("Florida State University"), html.Br(),
+                                "Department of Scientific Computing", html.Br(),
+                                "Tallahassee, FL 32306, USA"
                             ]),
                             html.H5("Financiamiento"),
                             html.P([
-                                "Duis aute irure dolor in reprehenderit in voluptate velit esse ",
-                                "cillum dolore eu fugiat nulla pariatur."
+                                "PROYECTO FINANCIADO CON RECURSOS DEL FIDEICOMISO 1490 PARA APOYAR LOS PROGRAMAS, PROYECTOS Y ACCIONES AMBIENTALES DE LA MEGALÓPOLIS.", html.Br(),
+                                html.Br(),
+                                "Estancia posdoctoral realizada gracias al Programa de Becas Posdoctorales en la Universidad Nacional Autónoma de México (Pedro A. Segura Chávez)"
                             ])
                         ], width=6)
                     ])
