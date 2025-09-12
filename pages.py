@@ -26,8 +26,15 @@ def get_forecast_datetime_str() -> str:
         # Usar fecha específica configurada
         forecast_datetime = datetime.strptime(DEFAULT_DATE_CONFIG['specific_date'], '%Y-%m-%d %H:%M:%S')
     else:
-        # Usar fecha actual
-        forecast_datetime = datetime.now().replace(minute=0, second=0, microsecond=0)
+        # Usar la fecha del último pronóstico disponible en la base de datos
+        try:
+            from postgres_data_service import get_last_available_date
+            forecast_datetime = get_last_available_date()
+            print(f"✅ Usando fecha del último pronóstico: {forecast_datetime}")
+        except Exception as e:
+            print(f"⚠️ Error obteniendo fecha del último pronóstico: {e}, usando fecha actual")
+            # Fallback: usar fecha actual
+            forecast_datetime = datetime.now().replace(minute=0, second=0, microsecond=0)
     
     # Formatear de manera más clara y legible
     # Ejemplo: "a las 14:00 hrs. del 15 de Mayo de 2023"
@@ -72,7 +79,7 @@ class HomePage:
             
             # Mapa de estaciones - Inicializado directamente (estilo vdev8)
             html.Div([
-                html.H3('Pronóstico de Concentración Máxima en Próximas 24 horas', style=STYLES['title']),
+                html.H3('Pronóstico de Concentración Máxima de Ozono en Próximas 24 horas', style=STYLES['title']),
                 dcc.Graph(
                     id="stations-map",
                     figure=create_professional_map(),  # Inicializar directamente
@@ -104,7 +111,7 @@ class HomePage:
             
             # Grid de diales al final (estilo vdev8)
             html.Div([
-                html.H3('Probabilidades de superar umbrales', style=STYLES['title']),
+                html.H3('Probabilidades de superar umbrales de ozono', style=STYLES['title']),
                 html.Div(id="indicators-container", children=wrapped_indicators)
             ], style=STYLES['container']),
             
