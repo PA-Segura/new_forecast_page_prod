@@ -628,20 +628,51 @@ class ConfigManager:
     
     def __init__(self):
         self.geojson: Optional[Dict] = None
+        self.geojson_mexico: Optional[Dict] = None
+        self.geojson_morelos: Optional[Dict] = None
         self._load_geojson()
     
     def _load_geojson(self) -> None:
-        """Carga el archivo GeoJSON de límites de la Ciudad de México"""
+        """Carga los archivos GeoJSON de límites de la Ciudad de México y estados vecinos"""
+        # Cargar archivo principal de Ciudad de México (CDMX.json)
         try:
-            with open('./assets/mexico_city.geojson') as f:
+            with open('./assets/CDMX.json') as f:
                 self.geojson = json.load(f)
+                print("✅ Archivo GeoJSON CDMX.json cargado correctamente")
         except FileNotFoundError:
-            print("⚠️  Warning: mexico_city.geojson not found. Map will work without city boundaries.")
+            print("⚠️  Warning: CDMX.json not found. Map will work without city boundaries.")
             if app_config.is_debug_mode():
                 print(f"    Directorio actual: {os.getcwd()}")
-                print(f"   🔍 Buscando en: ./assets/mexico_city.geojson")
+                print(f"   🔍 Buscando en: ./assets/CDMX.json")
                 print(f"   💡 Asegúrate de que el archivo existe en el directorio assets/")
             self.geojson = None
+        except Exception as e:
+            print(f"❌ Error cargando CDMX.json: {e}")
+            self.geojson = None
+        
+        # Cargar archivo Mexico.json
+        try:
+            with open('./assets/Mexico.json') as f:
+                self.geojson_mexico = json.load(f)
+                print("✅ Archivo GeoJSON Mexico.json cargado correctamente")
+        except FileNotFoundError:
+            print("⚠️  Warning: Mexico.json not found. Map will work without Mexico state boundaries.")
+            self.geojson_mexico = None
+        except Exception as e:
+            print(f"❌ Error cargando Mexico.json: {e}")
+            self.geojson_mexico = None
+        
+        # Cargar archivo Morelos.json
+        try:
+            with open('./assets/Morelos.json') as f:
+                self.geojson_morelos = json.load(f)
+                print("✅ Archivo GeoJSON Morelos.json cargado correctamente")
+        except FileNotFoundError:
+            print("⚠️  Warning: Morelos.json not found. Map will work without Morelos state boundaries.")
+            self.geojson_morelos = None
+        except Exception as e:
+            print(f"❌ Error cargando Morelos.json: {e}")
+            self.geojson_morelos = None
     
     def get_pollutant_info(self, pollutant_key: str) -> Dict[str, Any]:
         """Obtiene información completa de un contaminante"""
