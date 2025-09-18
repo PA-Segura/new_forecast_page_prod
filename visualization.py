@@ -140,6 +140,26 @@ class MapVisualizer:
                 }
             ])
         
+        # Agregar capa del Estado de México (Mexico.json) con color mucho más claro
+        if config_manager.geojson_mexico:
+            mapbox_layers.append({
+                "sourcetype": "geojson",
+                "source": config_manager.geojson_mexico,
+                "type": "fill",
+                "color": "rgba(34,139,34,0.06)",  # Verde mucho más claro para México
+                "below": "traces"
+            })
+        
+        # Agregar capa del Estado de Morelos (Morelos.json) con color mucho más claro
+        if config_manager.geojson_morelos:
+            mapbox_layers.append({
+                "sourcetype": "geojson",
+                "source": config_manager.geojson_morelos,
+                "type": "fill",
+                "color": "rgba(255,140,0,0.05)",  # Naranja mucho más claro para Morelos
+                "below": "traces"
+            })
+        
         return mapbox_layers
     
     @staticmethod
