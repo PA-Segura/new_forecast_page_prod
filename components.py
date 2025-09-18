@@ -28,7 +28,7 @@ class NavigationComponents:
                     dbc.NavItem(dbc.NavLink("Acerca del Pronóstico", href="/acerca", active="exact",
                                           style={'color': 'white', 'font-weight': 'bold', 'background': 'transparent'})),
                 ],
-                brand="Pronóstico de Calidad del Aire Mediante Redes Neuronales:",
+                brand="Pronóstico de Calidad del Aire Basado en Redes Neuronales:",
                 brand_href="/",
                 dark=True,
                 color="",  # Sin color para evitar fondo por defecto
