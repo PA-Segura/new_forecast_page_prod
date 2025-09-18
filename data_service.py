@@ -1126,7 +1126,54 @@ class EfficientAirQualityDataService(AirQualityDataService):
         Returns:
             go.Figure con serie temporal completa
         """
+        # Importar configuración de umbrales y colores
+        from config import OZONE_THRESHOLDS, COLORS
+        
         fig = go.Figure()
+        
+        # =====================================
+        # BARRAS HORIZONTALES DE FONDO CON UMBRALES DE OZONO
+        # =====================================
+        
+        # Barra Verde: Buena (0 - 58 ppb)
+        fig.add_hrect(
+            y0=0, y1=OZONE_THRESHOLDS['buena'],
+            fillcolor=COLORS['aire_buena'], opacity=0.2,
+            layer="below", line_width=0,
+            annotation_text="Buena", annotation_position="top left"
+        )
+        
+        # Barra Amarilla: Aceptable (58 - 90 ppb)
+        fig.add_hrect(
+            y0=OZONE_THRESHOLDS['buena'], y1=OZONE_THRESHOLDS['aceptable'],
+            fillcolor=COLORS['aire_aceptable'], opacity=0.2,
+            layer="below", line_width=0,
+            annotation_text="Aceptable", annotation_position="top left"
+        )
+        
+        # Barra Naranja: Mala (90 - 135 ppb)
+        fig.add_hrect(
+            y0=OZONE_THRESHOLDS['aceptable'], y1=OZONE_THRESHOLDS['mala'],
+            fillcolor=COLORS['aire_mala'], opacity=0.2,
+            layer="below", line_width=0,
+            annotation_text="Mala", annotation_position="top left"
+        )
+        
+        # Barra Roja: Muy Mala (135 - 175 ppb)
+        fig.add_hrect(
+            y0=OZONE_THRESHOLDS['mala'], y1=OZONE_THRESHOLDS['muy_mala'],
+            fillcolor=COLORS['aire_muy_mala'], opacity=0.2,
+            layer="below", line_width=0,
+            annotation_text="Muy Mala", annotation_position="top left"
+        )
+        
+        # Barra Morada: Extremadamente Mala (175+ ppb)
+        fig.add_hrect(
+            y0=OZONE_THRESHOLDS['muy_mala'], y1=200,  # Valor máximo para visualización
+            fillcolor=COLORS['aire_extremadamente_mala'], opacity=0.2,
+            layer="below", line_width=0,
+            annotation_text="Extremadamente Mala", annotation_position="top left"
+        )
         
         # Configurar tiempo usando la nueva configuración
         try:
