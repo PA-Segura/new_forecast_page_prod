@@ -349,7 +349,88 @@ class TimeSeriesVisualizer:
         Crea serie temporal completa mostrando todas las estaciones históricas + pronósticos regionales
         Funciona para PM2.5, PM10 y otros contaminantes
         """
+        # Importar configuración de umbrales y colores
+        from config import PM10_THRESHOLDS, PM25_THRESHOLDS, COLORS
+        
         fig = go.Figure()
+        
+        # =====================================
+        # BARRAS HORIZONTALES DE FONDO CON UMBRALES DE CALIDAD DEL AIRE
+        # =====================================
+        
+        if pollutant == 'PM10':
+            # Barras horizontales para PM10
+            fig.add_hrect(
+                y0=0, y1=PM10_THRESHOLDS['buena'],
+                fillcolor=COLORS['aire_buena'], opacity=0.2,
+                layer="below", line_width=0,
+                annotation_text="Buena", annotation_position="top left"
+            )
+            
+            fig.add_hrect(
+                y0=PM10_THRESHOLDS['buena'], y1=PM10_THRESHOLDS['aceptable'],
+                fillcolor=COLORS['aire_aceptable'], opacity=0.2,
+                layer="below", line_width=0,
+                annotation_text="Aceptable", annotation_position="top left"
+            )
+            
+            fig.add_hrect(
+                y0=PM10_THRESHOLDS['aceptable'], y1=PM10_THRESHOLDS['mala'],
+                fillcolor=COLORS['aire_mala'], opacity=0.2,
+                layer="below", line_width=0,
+                annotation_text="Mala", annotation_position="top left"
+            )
+            
+            fig.add_hrect(
+                y0=PM10_THRESHOLDS['mala'], y1=PM10_THRESHOLDS['muy_mala'],
+                fillcolor=COLORS['aire_muy_mala'], opacity=0.2,
+                layer="below", line_width=0,
+                annotation_text="Muy Mala", annotation_position="top left"
+            )
+            
+            fig.add_hrect(
+                y0=PM10_THRESHOLDS['muy_mala'], y1=300,  # Valor máximo para visualización
+                fillcolor=COLORS['aire_extremadamente_mala'], opacity=0.2,
+                layer="below", line_width=0,
+                annotation_text="Extremadamente Mala", annotation_position="top left"
+            )
+            
+        elif pollutant == 'PM2.5':
+            # Barras horizontales para PM2.5
+            fig.add_hrect(
+                y0=0, y1=PM25_THRESHOLDS['buena'],
+                fillcolor=COLORS['aire_buena'], opacity=0.2,
+                layer="below", line_width=0,
+                annotation_text="Buena", annotation_position="top left"
+            )
+            
+            fig.add_hrect(
+                y0=PM25_THRESHOLDS['buena'], y1=PM25_THRESHOLDS['aceptable'],
+                fillcolor=COLORS['aire_aceptable'], opacity=0.2,
+                layer="below", line_width=0,
+                annotation_text="Aceptable", annotation_position="top left"
+            )
+            
+            fig.add_hrect(
+                y0=PM25_THRESHOLDS['aceptable'], y1=PM25_THRESHOLDS['mala'],
+                fillcolor=COLORS['aire_mala'], opacity=0.2,
+                layer="below", line_width=0,
+                annotation_text="Mala", annotation_position="top left"
+            )
+            
+            fig.add_hrect(
+                y0=PM25_THRESHOLDS['mala'], y1=PM25_THRESHOLDS['muy_mala'],
+                fillcolor=COLORS['aire_muy_mala'], opacity=0.2,
+                layer="below", line_width=0,
+                annotation_text="Muy Mala", annotation_position="top left"
+            )
+            
+            fig.add_hrect(
+                y0=PM25_THRESHOLDS['muy_mala'], y1=200,  # Valor máximo para visualización
+                fillcolor=COLORS['aire_extremadamente_mala'], opacity=0.2,
+                layer="below", line_width=0,
+                annotation_text="Extremadamente Mala", annotation_position="top left"
+            )
         
         # Configurar tiempo usando fecha dinámica cuando SQLite está activado
         from config import is_sqlite_mode, get_current_reference_date

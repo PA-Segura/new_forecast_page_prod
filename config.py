@@ -448,6 +448,22 @@ OZONE_THRESHOLDS = {
     'muy_mala': 175       # 0.175 ppm * 1000
 }
 
+# Umbrales de PM10 en µg/m³ - NOM a partir de enero 2024
+PM10_THRESHOLDS = {
+    'buena': 45,          # <45 µg/m³
+    'aceptable': 60,      # >45 a 60 µg/m³
+    'mala': 132,          # >60 a 132 µg/m³
+    'muy_mala': 213       # >132 a 213 µg/m³
+}
+
+# Umbrales de PM2.5 en µg/m³ - NOM a partir de enero 2024
+PM25_THRESHOLDS = {
+    'buena': 15,          # <15 µg/m³
+    'aceptable': 33,      # >15 a 33 µg/m³
+    'mala': 79,           # >33 a 79 µg/m³
+    'muy_mala': 130       # >79 a 130 µg/m³
+}
+
 # Estilos (exactamente como vdev8)
 STYLES = {
     'header': {
