@@ -157,6 +157,35 @@ class OtrosContaminantesPage:
                 right_component=html.Div()  # Componente vacío para mantener el layout
             ),
             
+            # CÓDIGO COMENTADO - Selectores originales para otros contaminantes
+            # layout_containers.create_responsive_selector_row(
+            #     left_component=selector_components.create_pollutant_dropdown(
+            #         dropdown_id='pollutant-dropdown',
+            #         default_value=pollutant
+            #     ),
+            #     right_component=selector_components.create_station_dropdown(
+            #         dropdown_id='station-dropdown-otros',
+            #         default_value=id_est
+            #     )
+            # ),
+            # 
+            # # Nota explicativa sobre tipos de pronóstico
+            # dbc.Row([
+            #     dbc.Col([
+            #         alert_components.create_pollutant_info_alert()
+            #     ], width=12)
+            # ]),
+            # 
+            # # Gráfico principal dinámico
+            # dbc.Row([
+            #     dbc.Col([
+            #         html.Div(id="pollutant-timeseries-container", children=[
+            #             html.Div("Selecciona un contaminante y estación para ver los datos", 
+            #                    className="text-center text-muted p-4")
+            #         ])
+            #     ], width=12)
+            # ], className="mb-4"),
+            
             # Material particulado (PM2.5 y PM10) - estilo vdev8
             html.Div([
                 # PM10
