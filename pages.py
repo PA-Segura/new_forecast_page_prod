@@ -22,6 +22,8 @@ from config import DEFAULT_DATE_CONFIG, STYLES, COLORS
 
 def get_forecast_datetime_str() -> str:
     """Obtiene la fecha/hora del pronóstico formateada para mostrar en el título"""
+    from datetime import timedelta
+    
     if DEFAULT_DATE_CONFIG['use_specific_date']:
         # Usar fecha específica configurada
         forecast_datetime = datetime.strptime(DEFAULT_DATE_CONFIG['specific_date'], '%Y-%m-%d %H:%M:%S')
@@ -36,16 +38,20 @@ def get_forecast_datetime_str() -> str:
             # Fallback: usar fecha actual
             forecast_datetime = datetime.now().replace(minute=0, second=0, microsecond=0)
     
+    # Restar 1 hora al último pronóstico
+    adjusted_datetime = forecast_datetime - timedelta(hours=1)
+    print(f"✅ Fecha ajustada (último pronóstico - 1h): {adjusted_datetime}")
+    
     # Formatear de manera más clara y legible
-    # Ejemplo: "a las 14:00 hrs. del 15 de Mayo de 2023"
-    hour_str = forecast_datetime.strftime('%H:%M')
-    day_str = forecast_datetime.strftime('%d')
+    # Ejemplo: "a las 13:00 hrs. del 15 de Mayo de 2023"
+    hour_str = adjusted_datetime.strftime('%H:%M')
+    day_str = adjusted_datetime.strftime('%d')
     month_names = {
         1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio',
         7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
     }
-    month_str = month_names[forecast_datetime.month]
-    year_str = forecast_datetime.strftime('%Y')
+    month_str = month_names[adjusted_datetime.month]
+    year_str = adjusted_datetime.strftime('%Y')
     
     return f"a las {hour_str} hrs. del {day_str} de {month_str} de {year_str}"
 
@@ -90,7 +96,9 @@ class HomePage:
             
             # Serie temporal de Ozono (estilo vdev8) - CON FECHA/HORA DEL PRONÓSTICO
             html.Div([
-                html.H3(f'Concentraciones de Ozono (ppb) - {forecast_time_str}', style=STYLES['title']),
+                html.H3(f'Concentraciones de Ozono (ppb) - {forecast_time_str}', 
+                        id='o3-title', 
+                        style=STYLES['title']),
                 dcc.Graph(id="o3-timeseries-home", config={'displayModeBar': False})
             ], style=STYLES['container']),
             

@@ -540,11 +540,33 @@ class TimeSeriesVisualizer:
                     hovertemplate=f'<b>%{{x}}</b><br>%{{y:.1f}} {units}<extra></extra>'
                 )
             )
+            
+            # PASO 3.5: Promedio móvil ponderado por estación individual - OCULTO PARA PM10 y PM2.5
+            # if pollutant in ['PM10', 'PM2.5']:
+            #     from data_service import compute_weighted_average_series
+            #     
+            #     # Calcular serie temporal del promedio móvil ponderado
+            #     weighted_avg_series = compute_weighted_average_series(selected_historical, pollutant, window_hours=12)
+            #     
+            #     if not weighted_avg_series.empty:
+            #         fig.add_trace(
+            #             go.Scatter(
+            #                 x=weighted_avg_series['timestamp'],
+            #                 y=weighted_avg_series['weighted_avg'],
+            #                 mode='lines+markers',
+            #                 name=f'Promedio Móvil Ponderado 12h ({stations_dict[selected_station]["name"]})',
+            #                 line=dict(width=3, color='purple', dash='dot'),
+            #                 marker=dict(size=8, symbol='diamond'),
+            #                 showlegend=True,
+            #                 hovertemplate=f'<b>%{{x}}</b><br>Promedio Ponderado 12h: %{{y:.1f}} {units}<br>NOM-172-SEMARNAT-2023<extra></extra>'
+            #             )
+            #         )
         
-        # PASO 4: Agregar pronósticos regionales (mean/min/max)
+        # PASO 4: Agregar pronósticos regionales (mean/min/max) - OCULTOS PARA PM2.5 y PM10
         forecast_data = get_last_pollutant_forecast(pollutant, end_time_str)
         
-        if forecast_data and 'subtypes' in forecast_data:
+        # Solo mostrar pronósticos regionales para contaminantes que NO sean PM2.5 ni PM10
+        if forecast_data and 'subtypes' in forecast_data and pollutant not in ['PM2.5', 'PM10']:
             colors = {'mean': 'red', 'min': 'orange', 'max': 'darkred'}
             line_styles = {'mean': 'solid', 'min': 'dash', 'max': 'dash'}
             
@@ -563,6 +585,46 @@ class TimeSeriesVisualizer:
                             ),
                             showlegend=True,
                             hovertemplate=f'<b>%{{x}}</b><br>Regional {subtype.upper()}: %{{y:.1f}} {units}<extra></extra>'
+                        )
+                    )
+        
+        # PASO 5: Agregar serie concatenada con promedio móvil ponderado (PM10 y PM2.5)
+        if pollutant in ['PM10', 'PM2.5']:
+            from data_service import compute_concatenated_weighted_average_series, create_concatenated_mean_series
+            
+            # Crear serie concatenada (observaciones promedio + pronóstico mean)
+            concatenated_series = create_concatenated_mean_series(pollutant, start_time_str, end_time_str)
+            
+            if not concatenated_series.empty:
+                # Agregar serie concatenada original
+                fig.add_trace(
+                    go.Scatter(
+                        x=concatenated_series['timestamp'],
+                        y=concatenated_series['value'],
+                        mode='lines',
+                        name=f'Serie Concatenada (Obs Promedio + Pronóstico Mean)',
+                        line=dict(width=2, color='darkblue', dash='solid'),
+                        showlegend=True,
+                        hovertemplate=f'<b>%{{x}}</b><br>Concatenada: %{{y:.1f}} {units}<extra></extra>'
+                    )
+                )
+                
+                # Calcular y agregar promedio móvil ponderado de la serie concatenada
+                concatenated_weighted_avg = compute_concatenated_weighted_average_series(
+                    pollutant, start_time_str, end_time_str, window_hours=12
+                )
+                
+                if not concatenated_weighted_avg.empty:
+                    fig.add_trace(
+                        go.Scatter(
+                            x=concatenated_weighted_avg['timestamp'],
+                            y=concatenated_weighted_avg['weighted_avg'],
+                            mode='lines+markers',
+                            name=f'Promedio Móvil Ponderado 12h (Serie Concatenada)',
+                            line=dict(width=4, color='darkmagenta', dash='dot'),
+                            marker=dict(size=10, symbol='star'),
+                            showlegend=True,
+                            hovertemplate=f'<b>%{{x}}</b><br>Promedio Ponderado Concatenado: %{{y:.1f}} {units}<br>NOM-172-SEMARNAT-2023<extra></extra>'
                         )
                     )
         
@@ -617,8 +679,8 @@ class TimeSeriesVisualizer:
                 hovertemplate=f'<b>%{{x}}</b><br>Observado en {station_name}: %{{y:.1f}} {units}<extra></extra>'
             ))
         
-        # Añadir pronósticos regionales: mean, min, max
-        if len(forecast) > 0:
+        # Añadir pronósticos regionales: mean, min, max - OCULTOS PARA PM2.5 y PM10
+        if len(forecast) > 0 and pollutant not in ['PM2.5', 'PM10']:
             colors = {'mean': 'red', 'min': 'orange', 'max': 'darkred'}
             line_styles = {'mean': 'solid', 'min': 'dash', 'max': 'dash'}
             

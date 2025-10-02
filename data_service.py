@@ -1462,4 +1462,199 @@ def compute_all_stations_max_24h(fecha: str) -> pd.DataFrame:
 
 def compute_prediction_intervals(forecast_vector: np.ndarray, station: str, pollutant: str = 'O3') -> Optional[List[Dict]]:
     """Función de conveniencia para intervalos de predicción"""
-    return data_service.get_prediction_intervals(forecast_vector, station, pollutant) 
+    return data_service.get_prediction_intervals(forecast_vector, station, pollutant)
+
+
+# =====================================
+# FUNCIONES PARA PROMEDIO MÓVIL PONDERADO (NOM-172-SEMARNAT-2023)
+# =====================================
+
+def classify_pm10(C_bar: float) -> str:
+    """
+    Clasifica la calidad del aire para PM10 según NOM-172-SEMARNAT-2023
+    Basado en promedio móvil ponderado de 12 horas
+    """
+    if C_bar < 45:
+        return "Buena"
+    elif C_bar < 60:
+        return "Aceptable"
+    elif C_bar < 132:
+        return "Mala"
+    elif C_bar < 213:
+        return "Muy Mala"
+    else:
+        return "Extremadamente Mala"
+
+
+def classify_pm25(C_bar: float) -> str:
+    """
+    Clasifica la calidad del aire para PM2.5 según NOM-172-SEMARNAT-2023
+    Basado en promedio móvil ponderado de 12 horas
+    """
+    if C_bar < 15:
+        return "Buena"
+    elif C_bar < 33:
+        return "Aceptable"
+    elif C_bar < 79:
+        return "Mala"
+    elif C_bar < 130:
+        return "Muy Mala"
+    else:
+        return "Extremadamente Mala"
+
+
+def compute_weighted_average_concentration(C, pollutant='PM10'):
+    """
+    Computes the 12-hour weighted moving average concentration for PM10 or PM2.5.
+    Requires at least 3 recent hourly values. Most recent value goes last in array.
+    
+    Parameters:
+    - C (np.ndarray): Hourly concentration values.
+    - pollutant (str): One of 'PM10' or 'PM2.5'.
+
+    Returns:
+    - C_bar (float): Weighted average concentration.
+    - air_quality_index (str): Air quality category based on NOM (NOM-172-SEMARNAT-2023).
+
+    Formula used:
+    ---------------------
+    Weighted average with exponential decay:
+    
+    $$\bar{C} = \left( \frac{\sum_{i=1}^n C_i W^{i-1}}{\sum_{i=1}^n W^{i-1}} \right) \cdot F_A$$
+
+    Where:
+      - \( C_i \): concentration at hour \( i \), with \( i = 1 \) (oldest) to \( n \) (most recent)
+      - \( W = \max(\text{round}(w, 2), 0.5) \), with \( w = \frac{C_{\min}}{C_{\max}} \)
+      - \( F_A \) is a fixed factor: 0.714 for PM10, 0.694 for PM2.5
+    """
+    C = np.asarray(C)
+    C = C[~np.isnan(C)]
+
+    if C.size < 3:
+        raise ValueError("At least 3 valid hourly values are required.")
+
+    Cmax, Cmin = np.max(C), np.min(C)
+    w = 0 if Cmax == 0 else Cmin / Cmax
+    W = max(round(w, 2), 0.5)
+
+    i_array = np.arange(1, C.size + 1)
+    weights = W ** (i_array - 1)
+
+    FA = 0.714 if pollutant.upper() == 'PM10' else 0.694
+    C_bar = (np.sum(C * weights) / np.sum(weights)) * FA
+
+    if pollutant.upper() == 'PM10':
+        category = classify_pm10(C_bar)
+    elif pollutant.upper() == 'PM2.5':
+        category = classify_pm25(C_bar)
+    else:
+        raise ValueError("Pollutant must be 'PM10' or 'PM2.5'.")
+
+    return C_bar, category
+
+
+def compute_weighted_average_series(historical_data: pd.DataFrame, pollutant: str, window_hours: int = 12) -> pd.DataFrame:
+    """
+    Calcula la serie temporal del promedio móvil ponderado para un contaminante
+    
+    Parameters:
+    - historical_data: DataFrame con columnas 'timestamp' y 'value'
+    - pollutant: 'PM10' o 'PM2.5'
+    - window_hours: Ventana de horas para el cálculo (default 12)
+    
+    Returns:
+    - DataFrame con 'timestamp' y 'weighted_avg' (promedio móvil ponderado)
+    """
+    if historical_data.empty:
+        return pd.DataFrame(columns=['timestamp', 'weighted_avg'])
+    
+    # Ordenar por timestamp
+    df_sorted = historical_data.sort_values('timestamp').reset_index(drop=True)
+    
+    weighted_avgs = []
+    timestamps = []
+    
+    # Calcular promedio móvil ponderado para cada ventana
+    for i in range(window_hours - 1, len(df_sorted)):
+        window_data = df_sorted.iloc[i - window_hours + 1:i + 1]['value'].values
+        
+        try:
+            C_bar, category = compute_weighted_average_concentration(window_data, pollutant)
+            weighted_avgs.append(C_bar)
+            timestamps.append(df_sorted.iloc[i]['timestamp'])
+        except ValueError:
+            # Si no hay suficientes datos válidos, usar NaN
+            weighted_avgs.append(np.nan)
+            timestamps.append(df_sorted.iloc[i]['timestamp'])
+    
+    return pd.DataFrame({
+        'timestamp': timestamps,
+        'weighted_avg': weighted_avgs
+    })
+
+
+def create_concatenated_mean_series(pollutant: str, start_time_str: str, end_time_str: str) -> pd.DataFrame:
+    """
+    Crea una serie temporal concatenada con observaciones promedio + pronóstico regional mean
+    
+    Parameters:
+    - pollutant: 'PM10' o 'PM2.5'
+    - start_time_str: Fecha de inicio en formato 'YYYY-MM-DD HH:MM:SS'
+    - end_time_str: Fecha de fin en formato 'YYYY-MM-DD HH:MM:SS'
+    
+    Returns:
+    - DataFrame con 'timestamp' y 'value' (serie concatenada)
+    """
+    from data_service import data_service, get_last_pollutant_forecast
+    
+    # Obtener datos históricos de todas las estaciones
+    df_all_historical = data_service.get_all_stations_historical_batch(pollutant, start_time_str, end_time_str)
+    
+    if df_all_historical.empty:
+        return pd.DataFrame(columns=['timestamp', 'value'])
+    
+    # Calcular promedio de observaciones por timestamp
+    historical_avg = df_all_historical.groupby('timestamp')['value'].mean().reset_index()
+    historical_avg = historical_avg.sort_values('timestamp').reset_index(drop=True)
+    
+    # Obtener pronóstico regional mean
+    forecast_data = get_last_pollutant_forecast(pollutant, end_time_str)
+    
+    if not forecast_data or 'subtypes' not in forecast_data or 'mean' not in forecast_data['subtypes']:
+        # Si no hay pronóstico, devolver solo observaciones promedio
+        return historical_avg.rename(columns={'value': 'value'})
+    
+    # Crear DataFrame del pronóstico mean
+    forecast_df = pd.DataFrame({
+        'timestamp': forecast_data['timestamps'],
+        'value': forecast_data['subtypes']['mean']
+    })
+    
+    # Concatenar observaciones promedio + pronóstico mean
+    concatenated_series = pd.concat([historical_avg, forecast_df], ignore_index=True)
+    concatenated_series = concatenated_series.sort_values('timestamp').reset_index(drop=True)
+    
+    return concatenated_series
+
+
+def compute_concatenated_weighted_average_series(pollutant: str, start_time_str: str, end_time_str: str, window_hours: int = 12) -> pd.DataFrame:
+    """
+    Calcula el promedio móvil ponderado para la serie concatenada (observaciones promedio + pronóstico mean)
+    
+    Parameters:
+    - pollutant: 'PM10' o 'PM2.5'
+    - start_time_str: Fecha de inicio en formato 'YYYY-MM-DD HH:MM:SS'
+    - end_time_str: Fecha de fin en formato 'YYYY-MM-DD HH:MM:SS'
+    - window_hours: Ventana de horas para el cálculo (default 12)
+    
+    Returns:
+    - DataFrame con 'timestamp' y 'weighted_avg' (promedio móvil ponderado de la serie concatenada)
+    """
+    # Crear serie concatenada
+    concatenated_series = create_concatenated_mean_series(pollutant, start_time_str, end_time_str)
+    
+    if concatenated_series.empty:
+        return pd.DataFrame(columns=['timestamp', 'weighted_avg'])
+    
+    # Aplicar promedio móvil ponderado a la serie concatenada
+    return compute_weighted_average_series(concatenated_series, pollutant, window_hours) 
