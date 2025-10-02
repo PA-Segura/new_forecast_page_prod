@@ -102,20 +102,6 @@ class HomePage:
                 dcc.Graph(id="o3-timeseries-home", config={'displayModeBar': False})
             ], style=STYLES['container']),
             
-            # Material particulado (PM2.5 y PM10) - estilo vdev8
-            html.Div([
-                # PM10
-                html.Div([
-                    html.H3(f'Concentraciones de PM10 (µg/m³) {forecast_time_str}', style=STYLES['title']),
-                    dcc.Graph(id="pm10-timeseries-home", config={'displayModeBar': False})
-                ], style=STYLES['container']),
-                
-                # PM2.5
-                html.Div([
-                    html.H3(f'Concentraciones de PM2.5 (µg/m³) - {forecast_time_str}', style=STYLES['title']),
-                    dcc.Graph(id="pm25-timeseries-home", config={'displayModeBar': False})
-                ], style=STYLES['container'])
-            ]),
             
             # Grid de diales al final (estilo vdev8)
             html.Div([
@@ -162,34 +148,29 @@ class OtrosContaminantesPage:
             # Encabezado
             header_components.create_page_title("Otros Contaminantes"),
             
-            # Selectores
+            # Selector de estación
             layout_containers.create_responsive_selector_row(
-                left_component=selector_components.create_pollutant_dropdown(
-                    dropdown_id='pollutant-dropdown',
-                    default_value=pollutant
-                ),
-                right_component=selector_components.create_station_dropdown(
+                left_component=selector_components.create_station_dropdown(
                     dropdown_id='station-dropdown-otros',
                     default_value=id_est
-                )
+                ),
+                right_component=html.Div()  # Componente vacío para mantener el layout
             ),
             
-            # Nota explicativa sobre tipos de pronóstico
-            dbc.Row([
-                dbc.Col([
-                    alert_components.create_pollutant_info_alert()
-                ], width=12)
+            # Material particulado (PM2.5 y PM10) - estilo vdev8
+            html.Div([
+                # PM10
+                html.Div([
+                    html.H3(f'Concentraciones de PM10 (µg/m³) {get_forecast_datetime_str()}', style=STYLES['title']),
+                    dcc.Graph(id="pm10-timeseries-otros", config={'displayModeBar': False})
+                ], style=STYLES['container']),
+                
+                # PM2.5
+                html.Div([
+                    html.H3(f'Concentraciones de PM2.5 (µg/m³) - {get_forecast_datetime_str()}', style=STYLES['title']),
+                    dcc.Graph(id="pm25-timeseries-otros", config={'displayModeBar': False})
+                ], style=STYLES['container'])
             ]),
-            
-            # Gráfico principal
-            dbc.Row([
-                dbc.Col([
-                    html.Div(id="pollutant-timeseries-container", children=[
-                        html.Div("Selecciona un contaminante y estación para ver los datos", 
-                               className="text-center text-muted p-4")
-                    ])
-                ], width=12)
-            ], className="mb-4"),
             
             # Navegación de regreso
             OtrosContaminantesPage._create_navigation_cards()
