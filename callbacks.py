@@ -61,22 +61,47 @@ class HomePageCallbacks:
                 if forecast_datetime:
                     # Restar 1 hora al último pronóstico
                     adjusted_datetime = forecast_datetime - timedelta(hours=1)
+                    # Formatear fecha y hora de manera más clara
+                    day_str = adjusted_datetime.strftime('%d')
+                    month_names = {
+                        1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio',
+                        7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+                    }
+                    month_str = month_names[adjusted_datetime.month]
+                    year_str = adjusted_datetime.strftime('%Y')
                     hour_str = adjusted_datetime.strftime('%H:%M')
-                    print(f"✅ Usando hora del último pronóstico menos 1h: {hour_str}")
+                    datetime_str = f"a las {hour_str} hrs. del {day_str} de {month_str} de {year_str}"
+                    print(f"✅ Usando fecha del último pronóstico menos 1h: {datetime_str}")
                 else:
                     # Fallback: usar hora actual menos 1 hora
                     adjusted_datetime = datetime.now() - timedelta(hours=1)
+                    day_str = adjusted_datetime.strftime('%d')
+                    month_names = {
+                        1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio',
+                        7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+                    }
+                    month_str = month_names[adjusted_datetime.month]
+                    year_str = adjusted_datetime.strftime('%Y')
                     hour_str = adjusted_datetime.strftime('%H:%M')
-                    print(f"⚠️ Fallback: usando hora actual menos 1h: {hour_str}")
+                    datetime_str = f"a las {hour_str} hrs. del {day_str} de {month_str} de {year_str}"
+                    print(f"⚠️ Fallback: usando fecha actual menos 1h: {datetime_str}")
                     
             except Exception as e:
                 print(f"❌ Error obteniendo fecha del pronóstico: {e}")
                 # Fallback: usar hora actual menos 1 hora
                 adjusted_datetime = datetime.now() - timedelta(hours=1)
+                day_str = adjusted_datetime.strftime('%d')
+                month_names = {
+                    1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio',
+                    7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+                }
+                month_str = month_names[adjusted_datetime.month]
+                year_str = adjusted_datetime.strftime('%Y')
                 hour_str = adjusted_datetime.strftime('%H:%M')
-                print(f"⚠️ Error fallback: usando hora actual menos 1h: {hour_str}")
+                datetime_str = f"a las {hour_str} hrs. del {day_str} de {month_str} de {year_str}"
+                print(f"⚠️ Error fallback: usando fecha actual menos 1h: {datetime_str}")
             
-            title = f'Concentraciones de Ozono (ppb) - a las {hour_str} hrs.'
+            title = f'Concentraciones de Ozono (ppb) - {datetime_str}'
             print(f"✅ Título generado: {title}")
             
             return title
