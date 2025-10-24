@@ -38,6 +38,7 @@ class PronosticoResponse(BaseModel):
     ciudad: str = Field(..., description="Ciudad de la predicción")
     fecha_pron: str = Field(..., description="Fecha de pronóstico en formato YYYY-MM-DD")
     modelo_id: str = Field(..., description="ID del modelo utilizado")
+    modelo: str = Field(..., description="Nombre del modelo utilizado")
     unidades: str = Field(..., description="Unidades de medida")
     pronos: List[PronosticoItem] = Field(..., description="Lista de pronósticos")
 
@@ -296,6 +297,7 @@ class ForecastProcessor:
             ciudad=self.ciudad,
             fecha_pron=self.fecha_base.strftime('%Y-%m-%d'),
             modelo_id="7",  # id_tipo_pronostico
+            modelo="C6: Aprendizaje automático",
             unidades=self.get_unidades(),
             pronos=pronosticos
         )
@@ -563,7 +565,8 @@ async def get_ia_resume(
         response = PronosticoResponse(
             ciudad=first_row['ciudad'],
             fecha_pron=fecha_pron_iso,
-            modelo=first_row['modelo_id'] or 'IA_Model',
+            modelo_id=first_row['modelo_id'] or 'IA_Model',
+            modelo="Aprendizaje automático",
             unidades=first_row['unidades'] or 'ppb',
             pronos=pronosticos
         )
