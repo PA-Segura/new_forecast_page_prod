@@ -21,7 +21,7 @@ import netrc
 # Importar módulos refactorizados
 from config import config_manager, COLORS, is_sqlite_mode, get_sqlite_config, is_postgresql_mode, get_postgresql_config
 from components import create_navbar
-from pages import layout_home, layout_otros_contaminantes, layout_acerca
+from pages import layout_home, layout_otros_contaminantes, layout_historicos, layout_acerca
 from callbacks import initialize_callbacks
 
 # Importar servicio PostgreSQL (sistema principal)
@@ -44,7 +44,8 @@ APP_CONFIG = {
     'suppress_callback_exceptions': True,
     'debug': False,  # Debug desactivado por seguridad
     'host': '127.0.0.1',  # Solo localhost por seguridad
-    'port': 8888
+    'port': 6006  # Puerto para debug en localhost
+    # 'port': 8888  # Puerto original comentado como referencia
 }
 
 class AirQualityApp:
@@ -72,7 +73,13 @@ class AirQualityApp:
                     APP_CONFIG['host'] = account
                 if password:  # password puede contener port
                     try:
-                        APP_CONFIG['port'] = int(password)
+                        port_from_netrc = int(password)
+                        # Si el puerto en .netrc es 8888, usar 6006 en su lugar
+                        if port_from_netrc == 8888:
+                            APP_CONFIG['port'] = 6006
+                            print("✅ Puerto cambiado de 8888 a 6006 (puerto 8888 en uso)")
+                        else:
+                            APP_CONFIG['port'] = port_from_netrc
                     except ValueError:
                         pass  # Mantener puerto por defecto si no es válido
                 print("✅ Configuración de app cargada desde .netrc")
@@ -83,6 +90,11 @@ class AirQualityApp:
         except (FileNotFoundError, netrc.NetrcParseError):
             # No hay archivo .netrc, usar valores por defecto
             pass
+        
+        # Asegurar que el puerto sea 6006 (sobrescribir cualquier valor anterior si es 8888)
+        if APP_CONFIG.get('port') == 8888:
+            APP_CONFIG['port'] = 6006
+            print("✅ Puerto forzado a 6006 (puerto 8888 en uso)")
     
     def _validate_security_config(self):
         """Valida la configuración de seguridad de la aplicación."""
@@ -219,6 +231,15 @@ class AirQualityApp:
             title="Otros Contaminantes - Calidad del Aire",
             name="Otros Contaminantes",
             layout=layout_otros_contaminantes
+        )
+        
+        # Registrar página de pronósticos históricos
+        dash.register_page(
+            "historicos", 
+            path="/historicos",
+            title="Pronósticos Históricos - Calidad del Aire",
+            name="Históricos",
+            layout=layout_historicos
         )
         
         # Registrar página de información del sistema

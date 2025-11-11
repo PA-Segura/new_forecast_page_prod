@@ -220,6 +220,70 @@ class OtrosContaminantesPage:
         return layout_containers.create_action_cards_row([back_card])
 
 
+class HistoricosPage:
+    """Página de pronósticos históricos con estilo profesional vdev8"""
+    
+    @staticmethod
+    def layout(**kwargs) -> List[Any]:
+        """Layout para pronósticos históricos que acepta parámetros de URL"""
+        # Extraer parámetros si existen, usar configuración por defecto para datos reales
+        id_est = kwargs.get('id_est', DEFAULT_DATE_CONFIG['station_default'])
+        
+        return [
+            # Encabezado
+            header_components.create_page_title("Pronósticos Históricos"),
+            
+            # Selectores: Estación y Hora
+            layout_containers.create_responsive_selector_row(
+                left_component=selector_components.create_station_dropdown(
+                    dropdown_id='station-dropdown-historicos',
+                    default_value=id_est
+                ),
+                right_component=selector_components.create_hour_picker(
+                    hour_picker_id='hour-picker-historicos',
+                    default_hour=9
+                )
+            ),
+            
+            # Selectores: Contaminante y Fecha
+            layout_containers.create_responsive_selector_row(
+                left_component=selector_components.create_pollutant_dropdown(
+                    dropdown_id='pollutant-dropdown-historicos',
+                    default_value='O3'
+                ),
+                right_component=selector_components.create_date_picker(
+                    date_picker_id='date-picker-historicos',
+                    default_date=None
+                )
+            ),
+            
+            # Serie temporal histórica (única, dinámica)
+            html.Div([
+                html.H3('Pronóstico Histórico', 
+                        id='pollutant-title-historicos', 
+                        style=STYLES['title']),
+                dcc.Graph(id="pollutant-timeseries-historicos", config={'displayModeBar': False})
+            ], style=STYLES['container']),
+            
+            # Navegación de regreso
+            HistoricosPage._create_navigation_cards()
+        ]
+    
+    @staticmethod
+    def _create_navigation_cards() -> dbc.Row:
+        """Crea las tarjetas de navegación"""
+        back_card = card_components.create_action_card(
+            title="Volver al Inicio",
+            description="Regresa a la página principal con todos los contaminantes",
+            button_text="Página Principal",
+            button_href="/",
+            button_color="secondary",
+            button_size="lg"
+        )
+        
+        return layout_containers.create_action_cards_row([back_card])
+
+
 class AcercaPage:
     """Página 'Acerca de este pronóstico' con información del sistema"""
     
@@ -498,6 +562,7 @@ class AcercaPage:
 # Instancias globales de las páginas
 home_page = HomePage()
 otros_contaminantes_page = OtrosContaminantesPage()
+historicos_page = HistoricosPage()
 acerca_page = AcercaPage()
 
 # Funciones de conveniencia para compatibilidad
@@ -508,6 +573,10 @@ def layout_home(**kwargs):
 def layout_otros_contaminantes(**kwargs):
     """Función de conveniencia para layout de otros contaminantes"""
     return otros_contaminantes_page.layout(**kwargs)
+
+def layout_historicos(**kwargs):
+    """Función de conveniencia para layout de página históricos"""
+    return historicos_page.layout(**kwargs)
 
 def layout_acerca(**kwargs):
     """Función de conveniencia para layout de página acerca"""

@@ -126,7 +126,8 @@ class AppConfig:
         self.app_config = {
             'debug': True,
             'host': '0.0.0.0',
-            'port': 8888,
+            'port': 6006,  # Puerto para debug en localhost
+            # 'port': 8888,  # Puerto original comentado como referencia
             'title': 'Pronóstico de Calidad del Aire'
         }
         
@@ -196,7 +197,7 @@ class AppConfig:
             try:
                 self.app_config['port'] = int(port_str)
             except ValueError:
-                print(f"⚠️ Puerto '{port_str}' no válido, usando 8889")
+                print(f"⚠️ Puerto '{port_str}' no válido, usando 6006")
     
     def get_data_service_config(self) -> Dict[str, Any]:
         """
@@ -578,10 +579,10 @@ APP_CONFIG = {
     'title': 'Pronóstico de Calidad del Aire Basado en Redes Neuronales: Concentraciones de Ozono, PM10 y PM2.5',
     'debug': True,
     'host': '0.0.0.0',
-    'port': 8888,
+    'port': 6006,  # Puerto para debug en localhost
+    # 'port': 8888,  # Puerto original comentado como referencia
     'suppress_callback_exceptions': True
 }
-
 # Configuración del mapa (exactamente como vdev8)
 MAP_CONFIG = {
     'center_lat': 19.35,

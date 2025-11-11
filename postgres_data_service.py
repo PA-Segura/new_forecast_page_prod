@@ -231,7 +231,7 @@ class ForecastDataService:
         columns_str = ', '.join(stat_columns)
         
         # Construir query según la tabla
-        if pollutant in ['nox', 'pmdiez', 'sodos']:
+        if pollutant in ['nox', 'pmdiez', 'pmdoscinco', 'sodos']:
             # Estas tablas tienen id_tipo_pronostico
             query = f"""
             SELECT fecha, {columns_str}
@@ -240,6 +240,7 @@ class ForecastDataService:
             AND id_tipo_pronostico = %s
             """
             params = (fecha, self.forecast_id)
+            logger.info(f"📊 Query para {pollutant} con id_tipo_pronostico={self.forecast_id}")
         else:
             # Otras tablas no tienen id_tipo_pronostico
             query = f"""
@@ -248,6 +249,7 @@ class ForecastDataService:
             WHERE fecha = %s
             """
             params = (fecha,)
+            logger.info(f"📊 Query para {pollutant} sin id_tipo_pronostico")
         
         return self.connection.execute_query(query, params)
     

@@ -840,4 +840,237 @@ def create_indicators(station: str = 'MER') -> List[Any]:
 
 def get_combined_data(pollutant: str = 'O3', station: str = 'MER', hours_back: int = 24) -> pd.DataFrame:
     """Función de conveniencia para obtener datos combinados"""
-    return timeseries_visualizer.get_combined_data(pollutant, station, hours_back) 
+    return timeseries_visualizer.get_combined_data(pollutant, station, hours_back)
+
+
+# =====================================
+# FUNCIONES PARA PRONÓSTICOS HISTÓRICOS
+# =====================================
+
+def create_historical_time_series(pollutant: str, station: str, forecast_date: str) -> go.Figure:
+    """
+    Crea serie temporal histórica con pronóstico de fecha específica y observaciones empalmadas
+    Muestra todas las estaciones (como en la página principal)
+    
+    Args:
+        pollutant: Contaminante ('O3', 'PM10', 'PM2.5')
+        station: Estación seleccionada (destacada)
+        forecast_date: Fecha del pronóstico en formato 'YYYY-MM-DD' o 'YYYY-MM-DD HH:MM:SS'
+    
+    Returns:
+        Figura de Plotly con pronóstico histórico y observaciones de todas las estaciones
+    """
+    from postgres_data_service import ForecastDataService
+    from data_service import data_service
+    
+    # Parsear fecha
+    try:
+        if len(forecast_date) == 10:  # Solo fecha
+            forecast_datetime = datetime.strptime(forecast_date, '%Y-%m-%d')
+            # Asumir que el pronóstico es a las 9 AM (como mencionó el usuario)
+            forecast_datetime = forecast_datetime.replace(hour=9, minute=0, second=0)
+        else:
+            forecast_datetime = datetime.strptime(forecast_date, '%Y-%m-%d %H:%M:%S')
+    except:
+        # Fallback: usar fecha actual
+        forecast_datetime = datetime.now().replace(hour=9, minute=0, second=0, microsecond=0)
+    
+    forecast_date_str = forecast_datetime.strftime('%Y-%m-%d %H:%M:%S')
+    
+    # Crear figura base
+    fig = go.Figure()
+    
+    # Agregar barras de umbrales de ozono si es O3
+    if pollutant == 'O3':
+        from config import OZONE_THRESHOLDS, COLORS
+        
+        # Barras horizontales de fondo
+        fig.add_hrect(
+            y0=0, y1=OZONE_THRESHOLDS['buena'],
+            fillcolor=COLORS['aire_buena'], opacity=0.2,
+            layer="below", line_width=0,
+            annotation_text="Buena", annotation_position="top left"
+        )
+        fig.add_hrect(
+            y0=OZONE_THRESHOLDS['buena'], y1=OZONE_THRESHOLDS['aceptable'],
+            fillcolor=COLORS['aire_aceptable'], opacity=0.2,
+            layer="below", line_width=0,
+            annotation_text="Aceptable", annotation_position="top left"
+        )
+        fig.add_hrect(
+            y0=OZONE_THRESHOLDS['aceptable'], y1=OZONE_THRESHOLDS['mala'],
+            fillcolor=COLORS['aire_mala'], opacity=0.2,
+            layer="below", line_width=0,
+            annotation_text="Mala", annotation_position="top left"
+        )
+        fig.add_hrect(
+            y0=OZONE_THRESHOLDS['mala'], y1=OZONE_THRESHOLDS['muy_mala'],
+            fillcolor=COLORS['aire_muy_mala'], opacity=0.2,
+            layer="below", line_width=0,
+            annotation_text="Muy Mala", annotation_position="top left"
+        )
+        fig.add_hrect(
+            y0=OZONE_THRESHOLDS['muy_mala'], y1=200,
+            fillcolor=COLORS['aire_extremadamente_mala'], opacity=0.2,
+            layer="below", line_width=0,
+            annotation_text="Extremadamente Mala", annotation_position="top left"
+        )
+    
+    if pollutant == 'O3':
+        # Obtener todas las estaciones
+        stations_dict = data_service.get_all_stations()
+        
+        # Ventana de observaciones: -12 hrs antes del pronóstico hasta +36 hrs después (24h pronóstico + 12h)
+        # Esto permite ver observaciones que se empalman con el pronóstico
+        start_time = forecast_datetime - timedelta(hours=12)
+        end_time = forecast_datetime + timedelta(hours=36)
+        start_time_str = start_time.strftime('%Y-%m-%d %H:%M:%S')
+        end_time_str = end_time.strftime('%Y-%m-%d %H:%M:%S')
+        
+        print(f"🔍 Pronóstico histórico O3: {forecast_date_str}")
+        print(f"📊 Observaciones: {start_time_str} → {end_time_str}")
+        
+        # Obtener observaciones de todas las estaciones
+        try:
+            df_all_historical = data_service.get_all_stations_historical_batch('O3', start_time_str, end_time_str)
+        except Exception as e:
+            print(f"⚠️ Error obteniendo observaciones batch: {e}")
+            df_all_historical = pd.DataFrame()
+        
+        # Obtener pronósticos de todas las estaciones
+        try:
+            service = ForecastDataService()
+            df_all_forecast = service.get_ozone_forecast(forecast_date_str)  # Sin station = todas
+            service.close()
+        except Exception as e:
+            print(f"⚠️ Error obteniendo pronósticos históricos: {e}")
+            df_all_forecast = pd.DataFrame()
+        
+        # PASO 1: Agregar observaciones y pronósticos de otras estaciones (en gris)
+        for sta_code in stations_dict.keys():
+            if sta_code == station:
+                continue  # La estación seleccionada se agrega al final
+            
+            # Observaciones de esta estación (gris claro)
+            if not df_all_historical.empty:
+                df_sta = df_all_historical[df_all_historical['id_est'] == sta_code]
+                if not df_sta.empty:
+                    fig.add_trace(go.Scatter(
+                        x=pd.to_datetime(df_sta['timestamp']),
+                        y=df_sta['value'],
+                        mode='lines',
+                        name=f'Obs {sta_code}',
+                        line=dict(color='lightgray', width=1),
+                        opacity=0.3,
+                        showlegend=False,
+                        hovertemplate=f'{sta_code}<br>%{{y:.1f}} ppb<extra></extra>'
+                    ))
+            
+            # Pronósticos de esta estación (gris)
+            if not df_all_forecast.empty:
+                df_sta_forecast = df_all_forecast[df_all_forecast['id_est'] == sta_code]
+                if not df_sta_forecast.empty:
+                    row = df_sta_forecast.iloc[0]
+                    fecha_base = pd.to_datetime(row['fecha'])
+                    
+                    forecast_timestamps = []
+                    forecast_values = []
+                    for hour_num in range(1, 25):
+                        hour_col = f'hour_p{hour_num:02d}'
+                        if hour_col in row and pd.notna(row[hour_col]):
+                            timestamp = fecha_base + timedelta(hours=hour_num)
+                            forecast_timestamps.append(timestamp)
+                            forecast_values.append(float(row[hour_col]))
+                    
+                    if forecast_timestamps:
+                        fig.add_trace(go.Scatter(
+                            x=forecast_timestamps,
+                            y=forecast_values,
+                            mode='lines',
+                            name=f'Pron {sta_code}',
+                            line=dict(color='lightcoral', width=1),
+                            opacity=0.3,
+                            showlegend=False,
+                            hovertemplate=f'{sta_code}<br>%{{y:.1f}} ppb<extra></extra>'
+                        ))
+        
+        # PASO 2: Agregar observaciones de la estación seleccionada (azul oscuro)
+        if not df_all_historical.empty:
+            df_selected = df_all_historical[df_all_historical['id_est'] == station]
+            if not df_selected.empty:
+                fig.add_trace(go.Scatter(
+                    x=pd.to_datetime(df_selected['timestamp']),
+                    y=df_selected['value'],
+                    mode='lines+markers',
+                    name=f'Observaciones {station}',
+                    line=dict(color='darkblue', width=2),
+                    marker=dict(size=4),
+                    hovertemplate=f'{station}<br>%{{y:.1f}} ppb<extra></extra>'
+                ))
+        
+        # PASO 3: Agregar pronóstico de la estación seleccionada (rojo)
+        if not df_all_forecast.empty:
+            df_selected_forecast = df_all_forecast[df_all_forecast['id_est'] == station]
+            if not df_selected_forecast.empty:
+                row = df_selected_forecast.iloc[0]
+                fecha_base = pd.to_datetime(row['fecha'])
+                
+                forecast_timestamps = []
+                forecast_values = []
+                for hour_num in range(1, 25):
+                    hour_col = f'hour_p{hour_num:02d}'
+                    if hour_col in row and pd.notna(row[hour_col]):
+                        timestamp = fecha_base + timedelta(hours=hour_num)
+                        forecast_timestamps.append(timestamp)
+                        forecast_values.append(float(row[hour_col]))
+                
+                if forecast_timestamps:
+                    fig.add_trace(go.Scatter(
+                        x=forecast_timestamps,
+                        y=forecast_values,
+                        mode='lines+markers',
+                        name=f'Pronóstico {station}',
+                        line=dict(color='red', width=3),
+                        marker=dict(size=6),
+                        hovertemplate=f'{station}<br>%{{y:.1f}} ppb<extra></extra>'
+                    ))
+        
+        station_name = stations_dict.get(station, {}).get('name', station)
+        fig.update_layout(
+            title=f'Pronóstico Histórico de Ozono - {station_name} ({forecast_date})',
+            xaxis_title='Fecha y Hora',
+            yaxis_title='Concentración de Ozono (ppb)',
+            hovermode='x unified',
+            height=600
+        )
+        
+    else:
+        # Para PM10, PM2.5 y otros contaminantes: usar la misma visualización de "otros contaminantes"
+        # Simplemente usar la función existente pero con la fecha específica del pronóstico histórico
+        print(f"🔍 Usando visualización de 'otros contaminantes' para {pollutant}")
+        print(f"📅 Fecha del pronóstico: {forecast_date_str}")
+        
+        # Crear la visualización usando la misma lógica de _create_comprehensive_series
+        # pero ajustando la fecha de referencia temporalmente
+        
+        # Guardar la configuración actual
+        from config import DEFAULT_DATE_CONFIG
+        original_use_specific = DEFAULT_DATE_CONFIG.get('use_specific_date', False)
+        original_date = DEFAULT_DATE_CONFIG.get('specific_date', '')
+        
+        try:
+            # Temporalmente cambiar la fecha para que use el pronóstico histórico
+            DEFAULT_DATE_CONFIG['use_specific_date'] = True
+            DEFAULT_DATE_CONFIG['specific_date'] = forecast_date_str
+            
+            # Usar la función existente de otros contaminantes
+            fig = TimeSeriesVisualizer._create_comprehensive_series(pollutant, station)
+            
+        finally:
+            # Restaurar configuración original
+            DEFAULT_DATE_CONFIG['use_specific_date'] = original_use_specific
+            DEFAULT_DATE_CONFIG['specific_date'] = original_date
+        
+        return fig
+    
+    return fig 

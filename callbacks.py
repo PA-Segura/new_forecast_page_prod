@@ -5,11 +5,13 @@ Organiza todos los callbacks por funcionalidad y página.
 
 from dash import Output, Input, callback, dcc
 from typing import Any
+from datetime import datetime
 
-from visualization import create_time_series, create_indicators
+from visualization import create_time_series, create_indicators, create_historical_time_series
 from config import config_manager
 from components import indicator_components
 from pages import get_forecast_datetime_str
+from data_service import data_service
 
 
 class HomePageCallbacks:
@@ -193,6 +195,78 @@ class OtrosContaminantesCallbacks:
             return create_time_series('PM10', station)
 
 
+class HistoricosCallbacks:
+    """Callbacks específicos para la página de pronósticos históricos"""
+    
+    @staticmethod
+    def register_historicos_callbacks(app):
+        """Registra todos los callbacks de pronósticos históricos"""
+        
+        @app.callback(
+            Output("pollutant-timeseries-historicos", "figure"),
+            [Input("date-picker-historicos", "date"),
+             Input("hour-picker-historicos", "value"),
+             Input("pollutant-dropdown-historicos", "value"),
+             Input("station-dropdown-historicos", "value")]
+        )
+        def update_pollutant_timeseries_historicos(date, hour, pollutant, station):
+            if date is None:
+                from datetime import datetime, timedelta
+                date = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
+            if hour is None:
+                hour = 9
+            if pollutant is None:
+                pollutant = 'O3'
+            if station is None:
+                station = 'MER'
+            # Combinar fecha y hora
+            forecast_datetime_str = f"{date} {hour:02d}:00:00"
+            return create_historical_time_series(pollutant, station, forecast_datetime_str)
+        
+        @app.callback(
+            Output("pollutant-title-historicos", "children"),
+            [Input("date-picker-historicos", "date"),
+             Input("hour-picker-historicos", "value"),
+             Input("pollutant-dropdown-historicos", "value"),
+             Input("station-dropdown-historicos", "value")]
+        )
+        def update_pollutant_title_historicos(date, hour, pollutant, station):
+            """Actualiza el título del pronóstico histórico"""
+            if date is None:
+                from datetime import datetime, timedelta
+                date = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
+            if hour is None:
+                hour = 9
+            if pollutant is None:
+                pollutant = 'O3'
+            if station is None:
+                station = 'MER'
+            
+            # Obtener información del contaminante
+            pollutant_info = config_manager.get_pollutant_info(pollutant)
+            pollutant_name = pollutant_info['name']
+            units = pollutant_info['units']
+            
+            # Formatear fecha
+            try:
+                forecast_date = datetime.strptime(date, '%Y-%m-%d')
+                day_str = forecast_date.strftime('%d')
+                month_names = {
+                    1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio',
+                    7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+                }
+                month_str = month_names[forecast_date.month]
+                year_str = forecast_date.strftime('%Y')
+                date_str = f"{day_str} de {month_str} de {year_str}"
+            except:
+                date_str = date
+            
+            stations_dict = data_service.get_all_stations()
+            station_name = stations_dict.get(station, {}).get('name', station)
+            
+            return f'Concentraciones de {pollutant_name} ({units}) - Pronóstico del {date_str} a las {hour:02d}:00 hrs. - {station_name}'
+
+
 class CallbackManager:
     """Gestor principal de callbacks"""
     
@@ -200,11 +274,13 @@ class CallbackManager:
         self.app = app
         self.home_callbacks = HomePageCallbacks()
         self.otros_callbacks = OtrosContaminantesCallbacks()
+        self.historicos_callbacks = HistoricosCallbacks()
     
     def register_all_callbacks(self):
         """Registra todos los callbacks de la aplicación"""
         self.home_callbacks.register_home_callbacks(self.app)
         self.otros_callbacks.register_otros_contaminantes_callbacks(self.app)
+        self.historicos_callbacks.register_historicos_callbacks(self.app)
         
         print("✅ Todos los callbacks registrados correctamente")
 

@@ -25,6 +25,8 @@ class NavigationComponents:
                                           style={'color': 'white', 'font-weight': 'bold', 'background': 'transparent'})),
                     dbc.NavItem(dbc.NavLink("Otros Contaminantes", href="/otros-contaminantes", active="exact",
                                           style={'color': 'white', 'font-weight': 'bold', 'background': 'transparent'})),
+                    dbc.NavItem(dbc.NavLink("Históricos", href="/historicos", active="exact",
+                                          style={'color': 'white', 'font-weight': 'bold', 'background': 'transparent'})),
                     dbc.NavItem(dbc.NavLink("Acerca del Pronóstico", href="/acerca", active="exact",
                                           style={'color': 'white', 'font-weight': 'bold', 'background': 'transparent'})),
                 ],
@@ -280,6 +282,61 @@ class SelectorComponents:
                 options=[{'label': config['name'], 'value': key}
                         for key, config in POLLUTANT_CONFIG.items()],
                 value=default_value,
+                style=STYLES['dropdown']
+            )
+        ], style={
+            'width': '100%', 
+            'margin': '20px', 
+            'padding': '25px', 
+            'background-color': COLORS['card'], 
+            'border-radius': '15px',
+            'box-shadow': '0 4px 6px rgba(0,0,0,0.1)'
+        })
+    
+    @staticmethod
+    def create_date_picker(date_picker_id: str = 'date-picker', default_date: str = None) -> html.Div:
+        """Crea selector de fecha simple con estilo profesional"""
+        from datetime import datetime, timedelta
+        
+        # Si no hay fecha por defecto, usar hace 7 días
+        if default_date is None:
+            default_date = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
+        
+        return html.Div([
+            html.Label('Seleccionar fecha del pronóstico:', style=STYLES['label']),
+            dcc.DatePickerSingle(
+                id=date_picker_id,
+                date=default_date,
+                display_format='DD/MM/YYYY',
+                style={
+                    'width': '100%',
+                    'padding': '10px',
+                    'border-radius': '5px',
+                    'border': '1px solid #ccc'
+                }
+            )
+        ], style={
+            'width': '100%', 
+            'margin': '20px', 
+            'padding': '25px', 
+            'background-color': COLORS['card'], 
+            'border-radius': '15px',
+            'box-shadow': '0 4px 6px rgba(0,0,0,0.1)'
+        })
+    
+    @staticmethod
+    def create_hour_picker(hour_picker_id: str = 'hour-picker', default_hour: int = 9) -> html.Div:
+        """Crea selector de hora simple con estilo profesional"""
+        # Crear opciones para todas las horas del día
+        hour_options = [{'label': f'{h:02d}:00 hrs', 'value': h} for h in range(0, 24)]
+        
+        return html.Div([
+            html.Label('Seleccionar hora del pronóstico:', style=STYLES['label']),
+            dcc.Dropdown(
+                id=hour_picker_id,
+                options=hour_options,
+                value=default_hour,
+                clearable=False,
                 style=STYLES['dropdown']
             )
         ], style={
