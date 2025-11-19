@@ -247,6 +247,7 @@ class ForecastProcessor:
                     # Extraer día y hora
                     dia_str = fecha_hora_pronostico.strftime('%Y-%m-%d')
                     hora_str = fecha_hora_pronostico.strftime('%H:%M')
+                    hora_int = fecha_hora_pronostico.hour
                     
                     # Guardar el valor con metadata para este día
                     if dia_str not in valores_por_dia:
@@ -255,7 +256,8 @@ class ForecastProcessor:
                     valores_por_dia[dia_str].append({
                         'valor': valor,
                         'id_est': estacion,
-                        'hora': hora_str
+                        'hora': hora_str,
+                        'hora_int': hora_int  # Guardar hora como entero para verificación
                     })
         
         # Calcular el máximo por cada día y guardar la metadata del máximo
@@ -263,6 +265,8 @@ class ForecastProcessor:
         for dia, registros in valores_por_dia.items():
             # Encontrar el registro con el valor máximo
             registro_max = max(registros, key=lambda x: x['valor'])
+            # Guardar también información sobre horas disponibles para este día
+            registro_max['horas_disponibles'] = [r['hora_int'] for r in registros]
             max_por_dia[dia] = registro_max
         
         # Ordenar por fecha
@@ -280,7 +284,41 @@ class ForecastProcessor:
         Returns:
             PronosticoResponse con el formato requerido
         """
+        # Aplicar lógica de filtrado solo para ozono
+        daily_max_filtrado = daily_max.copy()
+        
+        if self.contaminante == 'ozono' and daily_max:
+            # Obtener el día siguiente a la fecha base
+            dia_siguiente = (self.fecha_base + timedelta(days=1)).strftime('%Y-%m-%d')
+            dia_corriente = self.fecha_base.strftime('%Y-%m-%d')
+            
+            # Verificar si hay datos del día siguiente después de las 4 PM (16:00)
+            tiene_datos_despues_4pm_dia_siguiente = False
+            
+            if dia_siguiente in daily_max:
+                horas_disponibles = daily_max[dia_siguiente].get('horas_disponibles', [])
+                # Verificar si hay alguna hora >= 16 (4 PM)
+                tiene_datos_despues_4pm_dia_siguiente = any(hora >= 16 for hora in horas_disponibles)
+            
+            # Aplicar filtro según la lógica
+            if tiene_datos_despues_4pm_dia_siguiente:
+                # Si hay datos después de las 4 PM del día siguiente, publicar dos días
+                # Mantener solo el día corriente y el día siguiente
+                daily_max_filtrado = {
+                    dia: registro for dia, registro in daily_max.items()
+                    if dia == dia_corriente or dia == dia_siguiente
+                }
+                # Ordenar por fecha
+                daily_max_filtrado = dict(sorted(daily_max_filtrado.items()))
+            else:
+                # Si no hay datos después de las 4 PM del día siguiente, solo publicar el día corriente
+                daily_max_filtrado = {
+                    dia: registro for dia, registro in daily_max.items()
+                    if dia == dia_corriente
+                }
+        
         # Construir lista de pronósticos con toda la metadata
+        # Limpiar el campo temporal 'horas_disponibles' antes de construir los items
         pronosticos = [
             PronosticoItem(
                 dia=dia_str,
@@ -289,7 +327,7 @@ class ForecastProcessor:
                 id_est=registro['id_est'],
                 hora=registro['hora']
             )
-            for dia_str, registro in daily_max.items()
+            for dia_str, registro in daily_max_filtrado.items()
         ]
         
         # Construir respuesta

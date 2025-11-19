@@ -14,10 +14,12 @@ from components import (
     card_components,
     alert_components,
     layout_containers,
-    indicator_components
+    indicator_components,
+    summary_components
 )
 from visualization import create_indicators, create_professional_map
 from config import DEFAULT_DATE_CONFIG, STYLES, COLORS
+from data_service import data_service
 
 
 def get_forecast_datetime_str() -> str:
@@ -74,11 +76,8 @@ class HomePage:
         forecast_time_str = get_forecast_datetime_str()
         
         return [
-            # Header fusionado con logo y selector de estación
-            header_components.create_logo_with_station_selector(
-                dropdown_id='station-dropdown-home',
-                default_value=id_est
-            ),
+            # Header solo con logos (sin selector de estación)
+            header_components.create_logo_header(),
             
             # Título fusionado con cintillo - COMENTADO (ahora está en el navbar)
             # header_components.create_fused_title_header(),
@@ -94,11 +93,53 @@ class HomePage:
                 )
             ], style=STYLES['container']),
             
+            # Resumen del máximo pronóstico de ozono
+            summary_components.create_ozone_max_summary(),
+            
             # Serie temporal de Ozono (estilo vdev8) - CON FECHA/HORA DEL PRONÓSTICO
             html.Div([
-                html.H3(f'Concentraciones de Ozono (ppb) - {forecast_time_str}', 
-                        id='o3-title', 
-                        style=STYLES['title']),
+                # Título y selector de estación en la misma línea
+                html.Div([
+                    html.H3(f'Concentraciones de Ozono (ppb) - {forecast_time_str}', 
+                            id='o3-title', 
+                            style={**STYLES['title'], 'margin': '0', 'flex': '1'}),
+                    html.Div([
+                        html.Label('Seleccionar estación:', style={
+                            'font-family': 'Helvetica',
+                            'font-size': '16px',
+                            'font-weight': 'bold',
+                            'color': COLORS['text'],
+                            'margin-right': '10px',
+                            'display': 'inline-block',
+                            'vertical-align': 'middle'
+                        }),
+                        dcc.Dropdown(
+                            id='station-dropdown-home',
+                            options=[{'label': station_info['name'], 'value': code}
+                                    for code, station_info in data_service.get_all_stations().items()],
+                            value=id_est,
+                            style={
+                                'width': '300px',
+                                'font-family': 'Helvetica',
+                                'font-size': '14px',
+                                'border-radius': '8px',
+                                'box-shadow': '0 2px 4px rgba(0,0,0,0.05)',
+                                'display': 'inline-block',
+                                'vertical-align': 'middle'
+                            }
+                        )
+                    ], style={
+                        'display': 'flex',
+                        'align-items': 'center',
+                        'justify-content': 'flex-end'
+                    })
+                ], style={
+                    'display': 'flex',
+                    'align-items': 'center',
+                    'justify-content': 'space-between',
+                    'margin-bottom': '15px',
+                    'gap': '20px'
+                }),
                 dcc.Graph(id="o3-timeseries-home", config={'displayModeBar': False})
             ], style=STYLES['container']),
             
@@ -249,7 +290,8 @@ class HistoricosPage:
             layout_containers.create_responsive_selector_row(
                 left_component=selector_components.create_pollutant_dropdown(
                     dropdown_id='pollutant-dropdown-historicos',
-                    default_value='O3'
+                    default_value='O3',
+                    only_main_pollutants=True  # Solo O3, PM2.5 y PM10 en históricos
                 ),
                 right_component=selector_components.create_date_picker(
                     date_picker_id='date-picker-historicos',

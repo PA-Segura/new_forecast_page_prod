@@ -460,6 +460,160 @@ def get_available_stations() -> List[str]:
     finally:
         service.close()
 
+def get_maximum_ozone_forecast_summary(fecha: str = None) -> Dict[str, Any]:
+    """
+    Obtiene el resumen del máximo pronóstico de ozono para las próximas 24 horas.
+    Retorna el valor máximo, la estación donde ocurre y la hora.
+    
+    Args:
+        fecha: Fecha en formato 'YYYY-MM-DD HH:MM:SS' (opcional, usa la última disponible si no se especifica)
+    
+    Returns:
+        Dict con:
+            - max_value: Valor máximo pronosticado (float)
+            - station: Código de la estación (str)
+            - station_name: Nombre completo de la estación (str)
+            - hour: Hora en formato 'HH:MM' (str)
+            - hour_number: Número de hora (1-24) (int)
+    """
+    from datetime import timedelta
+    import logging
+    
+    service = ForecastDataService()
+    try:
+        # SIEMPRE consultar la última fecha disponible si no se especifica
+        if not fecha:
+            logging.info("🔄 Consultando última fecha disponible en BD para resumen...")
+            latest_date = service.get_latest_forecast_date()
+            if latest_date:
+                fecha = latest_date.strftime('%Y-%m-%d %H:%M:%S')
+                logging.info(f"✅ Resumen: usando última fecha de BD: {fecha}")
+            else:
+                logging.warning("⚠️ Resumen: No hay fecha disponible en BD")
+                return {
+                    'max_value': None,
+                    'station': None,
+                    'station_name': None,
+                    'hour': None,
+                    'hour_number': None
+                }
+        else:
+            logging.info(f"📋 Resumen: usando fecha especificada: {fecha}")
+        
+        # Obtener pronósticos para todas las estaciones (query fresca a la BD)
+        all_forecasts = service.get_ozone_forecast(fecha)
+        logging.info(f"📊 Resumen: obtenidos pronósticos para {len(all_forecasts)} estaciones")
+        
+        if all_forecasts.empty:
+            return {
+                'max_value': None,
+                'station': None,
+                'station_name': None,
+                'hour': None,
+                'hour_number': None
+            }
+        
+        # Diccionario de nombres de estaciones
+        station_coords = {
+            'AJM': {'name': 'AJM - Ajusco Medio', 'lat': 19.154621, 'lon': -99.21286},
+            'AJU': {'name': 'AJU - Ajusco', 'lat': 19.103353, 'lon': -99.162551},
+            'ATI': {'name': 'ATI - Atizapán', 'lat': 19.580448, 'lon': -99.254532},
+            'BJU': {'name': 'BJU - Benito Juárez', 'lat': 19.372885, 'lon': -99.159041},
+            'CAM': {'name': 'CAM - Camarones', 'lat': 19.471715, 'lon': -99.165214},
+            'CCA': {'name': 'CCA - Centro de Ciencias de la Atmósfera', 'lat': 19.326125, 'lon': -99.176901},
+            'CHO': {'name': 'CHO - Chalco', 'lat': 19.26506, 'lon': -98.895455},
+            'CUA': {'name': 'CUA - Cuajimalpa', 'lat': 19.364623, 'lon': -99.29141},
+            'CUT': {'name': 'CUT - Cuautitlán', 'lat': 19.695024, 'lon': -99.1772},
+            'DIC': {'name': 'DIC - Desierto de los Leones', 'lat': 19.302167, 'lon': -99.313833},
+            'EAJ': {'name': 'EAJ - Ecoguardas Ajusco', 'lat': 19.130264, 'lon': -99.155845},
+            'FAC': {'name': 'FAC - FES Acatlán', 'lat': 19.482247, 'lon': -99.244039},
+            'HAN': {'name': 'HAN - Hangares', 'lat': 19.424513, 'lon': -99.072269},
+            'INN': {'name': 'INN - Investigaciones Nucleares', 'lat': 19.297381, 'lon': -99.342414},
+            'IZT': {'name': 'IZT - Iztacalco', 'lat': 19.384097, 'lon': -99.11261},
+            'LAG': {'name': 'LAG - Laguna', 'lat': 19.424513, 'lon': -99.072269},
+            'LLA': {'name': 'LLA - Los Laureles', 'lat': 19.609717, 'lon': -98.963008},
+            'LPR': {'name': 'LPR - La Presa', 'lat': 19.135, 'lon': -99.074},
+            'MER': {'name': 'MER - Merced', 'lat': 19.42461, 'lon': -99.119594},
+            'MGH': {'name': 'MGH - Miguel Hidalgo', 'lat': 19.400255, 'lon': -99.202777},
+            'MON': {'name': 'MON - Montecillo', 'lat': 19.461914, 'lon': -98.903739},
+            'NEZ': {'name': 'NEZ - Nezahualcóyotl', 'lat': 19.400969, 'lon': -99.026988},
+            'PED': {'name': 'PED - Pedregal', 'lat': 19.325, 'lon': -99.204},
+            'SAG': {'name': 'SAG - San Agustín', 'lat': 19.529528, 'lon': -99.030583},
+            'SFE': {'name': 'SFE - Santa Fe', 'lat': 19.357989, 'lon': -99.267089},
+            'SHA': {'name': 'SHA - Sahagún', 'lat': 19.626814, 'lon': -98.982119},
+            'SJA': {'name': 'SJA - San Juan Aragón', 'lat': 19.459136, 'lon': -99.096306},
+            'TAH': {'name': 'TAH - Tláhuac', 'lat': 19.246919, 'lon': -99.01235},
+            'TLA': {'name': 'TLA - Tlalnepantla', 'lat': 19.529528, 'lon': -99.030583},
+            'UIZ': {'name': 'UIZ - UAM Iztapalapa', 'lat': 19.360556, 'lon': -99.073889}
+        }
+        
+        # Encontrar el máximo global entre todas las estaciones y todas las horas
+        max_value = None
+        max_station = None
+        max_hour_number = None
+        
+        # Parsear la fecha base del pronóstico
+        fecha_base = datetime.strptime(fecha, '%Y-%m-%d %H:%M:%S')
+        
+        for _, row in all_forecasts.iterrows():
+            station = row['id_est']
+            
+            # Revisar cada hora (hour_p01 a hour_p24)
+            for hour_num in range(1, 25):
+                hour_col = f'hour_p{hour_num:02d}'
+                
+                if hour_col in row and pd.notna(row[hour_col]):
+                    value = float(row[hour_col])
+                    
+                    # Actualizar máximo si encontramos un valor mayor
+                    if max_value is None or value > max_value:
+                        max_value = value
+                        max_station = station
+                        max_hour_number = hour_num
+        
+        # Si encontramos un máximo, calcular la hora real
+        if max_value is not None and max_station is not None and max_hour_number is not None:
+            # La hora del pronóstico es fecha_base + max_hour_number horas - 1 hora (corrección)
+            max_hour_datetime = fecha_base + timedelta(hours=max_hour_number) - timedelta(hours=1)
+            max_hour_str = max_hour_datetime.strftime('%H:%M')
+            
+            # Obtener nombre de la estación
+            station_info = station_coords.get(max_station, {
+                'name': max_station
+            })
+            station_name = station_info['name']
+            
+            logging.info(f"✅ Resumen calculado: {max_value:.1f} ppb en {max_station} a las {max_hour_str}")
+            
+            return {
+                'max_value': max_value,
+                'station': max_station,
+                'station_name': station_name,
+                'hour': max_hour_str,
+                'hour_number': max_hour_number
+            }
+        else:
+            return {
+                'max_value': None,
+                'station': None,
+                'station_name': None,
+                'hour': None,
+                'hour_number': None
+            }
+            
+    except Exception as e:
+        import logging
+        logging.error(f"Error en get_maximum_ozone_forecast_summary: {e}")
+        return {
+            'max_value': None,
+            'station': None,
+            'station_name': None,
+            'hour': None,
+            'hour_number': None
+        }
+    finally:
+        service.close()
+
 # =====================================
 # FUNCIONES DE PROBABILIDAD
 # =====================================
@@ -562,55 +716,99 @@ def probability_2pass_threshold(forecast_level: float, mu: float, sigma: float, 
 
 # Crear diccionario de estaciones
 def _create_stations_dict():
-    """Crea el diccionario de estaciones"""
+    """Crea el diccionario de estaciones con nombres correctos"""
     stations = get_available_stations()
     stations_dict = {}
     
+    # Diccionario con nombres correctos de estaciones (formato: "KEY - Nombre")
+    station_names = {
+        'AJM': 'AJM - Ajusco Medio',
+        'AJU': 'AJU - Ajusco',
+        'ATI': 'ATI - Atizapán',
+        'BJU': 'BJU - Benito Juárez',
+        'CAM': 'CAM - Camarones',
+        'CCA': 'CCA - Centro de Ciencias de la Atmósfera',
+        'CHO': 'CHO - Chalco',
+        'CUA': 'CUA - Cuajimalpa',
+        'CUT': 'CUT - Cuautitlán',
+        'DIC': 'DIC - Desierto de los Leones',
+        'EAJ': 'EAJ - Ecoguardas Ajusco',
+        'FAC': 'FAC - FES Acatlán',
+        'HAN': 'HAN - Hangares',
+        'INN': 'INN - Investigaciones Nucleares',
+        'IZT': 'IZT - Iztacalco',
+        'LAG': 'LAG - Laguna',
+        'LLA': 'LLA - Los Laureles',
+        'LPR': 'LPR - La Presa',
+        'MER': 'MER - Merced',
+        'MGH': 'MGH - Miguel Hidalgo',
+        'MON': 'MON - Montecillo',
+        'NEZ': 'NEZ - Nezahualcóyotl',
+        'PED': 'PED - Pedregal',
+        'SAG': 'SAG - San Agustín',
+        'SFE': 'SFE - Santa Fe',
+        'SHA': 'SHA - Sahagún',
+        'SJA': 'SJA - San Juan Aragón',
+        'TAH': 'TAH - Tláhuac',
+        'TLA': 'TLA - Tlalnepantla',
+        'UIZ': 'UIZ - UAM Iztapalapa'
+    }
+    
     # Coordenadas aproximadas de las estaciones (se pueden actualizar)
     coordinates = {
-        'UIZ': {'lat': 19.35, 'lon': -99.15},
-        'AJU': {'lat': 19.35, 'lon': -99.15},
-        'ATI': {'lat': 19.35, 'lon': -99.15},
-        'CUA': {'lat': 19.35, 'lon': -99.15},
-        'SFE': {'lat': 19.35, 'lon': -99.15},
-        'SAG': {'lat': 19.35, 'lon': -99.15},
-        'CUT': {'lat': 19.35, 'lon': -99.15},
-        'PED': {'lat': 19.35, 'lon': -99.15},
-        'TAH': {'lat': 19.35, 'lon': -99.15},
+        'UIZ': {'lat': 19.360556, 'lon': -99.073889},
+        'AJU': {'lat': 19.103353, 'lon': -99.162551},
+        'ATI': {'lat': 19.580448, 'lon': -99.254532},
+        'CUA': {'lat': 19.364623, 'lon': -99.29141},
+        'SFE': {'lat': 19.357989, 'lon': -99.267089},
+        'SAG': {'lat': 19.529528, 'lon': -99.030583},
+        'CUT': {'lat': 19.695024, 'lon': -99.1772},
+        'PED': {'lat': 19.325, 'lon': -99.204},
+        'TAH': {'lat': 19.246919, 'lon': -99.01235},
         'GAM': {'lat': 19.35, 'lon': -99.15},
-        'IZT': {'lat': 19.35, 'lon': -99.15},
-        'CCA': {'lat': 19.35, 'lon': -99.15},
+        'IZT': {'lat': 19.384097, 'lon': -99.11261},
+        'CCA': {'lat': 19.326125, 'lon': -99.176901},
         'HGM': {'lat': 19.35, 'lon': -99.15},
-        'LPR': {'lat': 19.35, 'lon': -99.15},
-        'MGH': {'lat': 19.35, 'lon': -99.15},
-        'CAM': {'lat': 19.35, 'lon': -99.15},
-        'FAC': {'lat': 19.35, 'lon': -99.15},
-        'TLA': {'lat': 19.35, 'lon': -99.15},
+        'LPR': {'lat': 19.135, 'lon': -99.074},
+        'MGH': {'lat': 19.400255, 'lon': -99.202777},
+        'CAM': {'lat': 19.471715, 'lon': -99.165214},
+        'FAC': {'lat': 19.482247, 'lon': -99.244039},
+        'TLA': {'lat': 19.529528, 'lon': -99.030583},
         'MER': {'lat': 19.42461, 'lon': -99.119594},
         'XAL': {'lat': 19.35, 'lon': -99.15},
-        'LLA': {'lat': 19.35, 'lon': -99.15},
+        'LLA': {'lat': 19.609717, 'lon': -98.963008},
         'TLI': {'lat': 19.35, 'lon': -99.15},
         'UAX': {'lat': 19.35, 'lon': -99.15},
-        'BJU': {'lat': 19.35, 'lon': -99.15},
+        'BJU': {'lat': 19.372885, 'lon': -99.159041},
         'MPA': {'lat': 19.35, 'lon': -99.15},
-        'MON': {'lat': 19.35, 'lon': -99.15},
-        'NEZ': {'lat': 19.35, 'lon': -99.15},
-        'INN': {'lat': 19.35, 'lon': -99.15},
-        'AJM': {'lat': 19.35, 'lon': -99.15},
-        'VIF': {'lat': 19.35, 'lon': -99.15}
+        'MON': {'lat': 19.461914, 'lon': -98.903739},
+        'NEZ': {'lat': 19.400969, 'lon': -99.026988},
+        'INN': {'lat': 19.297381, 'lon': -99.342414},
+        'AJM': {'lat': 19.154621, 'lon': -99.21286},
+        'VIF': {'lat': 19.35, 'lon': -99.15},
+        'CHO': {'lat': 19.26506, 'lon': -98.895455},
+        'DIC': {'lat': 19.302167, 'lon': -99.313833},
+        'EAJ': {'lat': 19.130264, 'lon': -99.155845},
+        'HAN': {'lat': 19.424513, 'lon': -99.072269},
+        'LAG': {'lat': 19.424513, 'lon': -99.072269},
+        'SHA': {'lat': 19.626814, 'lon': -98.982119},
+        'SJA': {'lat': 19.459136, 'lon': -99.096306}
     }
     
     for station in stations:
+        # Usar nombre correcto si está disponible, sino usar formato genérico
+        name = station_names.get(station, f'{station} - Estación')
+        
         if station in coordinates:
             stations_dict[station] = {
-                'name': f'{station} - Estación',
+                'name': name,
                 'lat': coordinates[station]['lat'],
                 'lon': coordinates[station]['lon']
             }
         else:
             # Coordenadas por defecto
             stations_dict[station] = {
-                'name': f'{station} - Estación',
+                'name': name,
                 'lat': 19.35,
                 'lon': -99.15
             }

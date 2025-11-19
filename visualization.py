@@ -92,6 +92,7 @@ class MapVisualizer:
                 bgcolor='white',
                 font_size=14,
                 font_family='Helvetica',
+                font_color='#1a1a1a',  # Color oscuro para mejor legibilidad
                 bordercolor='rgba(0,0,0,0.1)'
             ),
             coloraxis_colorbar=MapVisualizer._get_colorbar_config(),

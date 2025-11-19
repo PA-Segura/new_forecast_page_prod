@@ -134,8 +134,8 @@ class HeaderComponents:
         ], style={'margin': '20px'})
     
     @staticmethod
-    def create_logo_with_station_selector(dropdown_id: str = 'station-dropdown-home', default_value: str = 'PED') -> html.Div:
-        """Crea header fusionado con logo y selector de estación"""
+    def create_logo_header() -> html.Div:
+        """Crea header solo con logos (sin selector de estación)"""
         return html.Div([
             # Logo principal a la izquierda
             html.Div([
@@ -175,48 +175,6 @@ class HeaderComponents:
             #         }
             #     ),
             # ], style={'display': 'inline-block', 'vertical-align': 'middle', 'margin-left': '20px'}),
-            
-            # Selector de estación a la derecha
-            html.Div([
-                html.Label('Seleccionar estación:', style={
-                    'font-family': 'Helvetica',
-                    'font-size': '16px',
-                    'font-weight': 'bold',
-                    'color': COLORS['text'],
-                    'margin-right': '10px',
-                    'display': 'inline-block',
-                    'vertical-align': 'middle'
-                }),
-                dcc.Dropdown(
-                    id=dropdown_id,
-                    options=[{'label': station_info['name'], 'value': code}
-                            for code, station_info in data_service.get_all_stations().items()],
-                    value=default_value,
-                    style={
-                        'width': '300px',
-                        'font-family': 'Helvetica',
-                        'font-size': '14px',
-                        'border-radius': '8px',
-                        'box-shadow': '0 2px 4px rgba(0,0,0,0.05)',
-                        'display': 'inline-block',
-                        'vertical-align': 'middle'
-                    }
-                )
-            ], style={
-                'display': 'inline-block', 
-                'float': 'right',
-                'margin-top': '15px',
-                'margin-right': '20px'
-            }),
-            
-            # Espacio adicional para mejorar estética del contenedor
-            html.Div([
-                html.Span("", style={'color': 'transparent'})  # Texto invisible para alargar
-            ], style={
-                'clear': 'both',
-                'height': '15px',
-                'width': '100%'
-            })
         ], style={
             'text-align': 'left', 
             'margin-top': '20px', 
@@ -273,14 +231,35 @@ class SelectorComponents:
         })
     
     @staticmethod
-    def create_pollutant_dropdown(dropdown_id: str = 'pollutant-dropdown', default_value: str = 'O3') -> html.Div:
-        """Crea selector de contaminante con estilo profesional"""
+    def create_pollutant_dropdown(dropdown_id: str = 'pollutant-dropdown', default_value: str = 'O3', 
+                                  only_main_pollutants: bool = False) -> html.Div:
+        """Crea selector de contaminante con estilo profesional
+        
+        Args:
+            dropdown_id: ID del dropdown
+            default_value: Valor por defecto
+            only_main_pollutants: Si True, solo muestra O3, PM2.5 y PM10
+        """
+        # Variable hardcodeada para controlar filtro de contaminantes
+        SOLO_CONTAMINANTES_INTERES = True  # Cambiar a False para mostrar todos
+        
+        # Filtrar contaminantes si está activado
+        if only_main_pollutants and SOLO_CONTAMINANTES_INTERES:
+            # Solo mostrar contaminantes de interés
+            contaminantes_permitidos = ['O3', 'PM2.5', 'PM10']
+            opciones = [{'label': config['name'], 'value': key}
+                       for key, config in POLLUTANT_CONFIG.items()
+                       if key in contaminantes_permitidos]
+        else:
+            # Mostrar todos los contaminantes
+            opciones = [{'label': config['name'], 'value': key}
+                       for key, config in POLLUTANT_CONFIG.items()]
+        
         return html.Div([
             html.Label('Seleccionar contaminante:', style=STYLES['label']),
             dcc.Dropdown(
                 id=dropdown_id,
-                options=[{'label': config['name'], 'value': key}
-                        for key, config in POLLUTANT_CONFIG.items()],
+                options=opciones,
                 value=default_value,
                 style=STYLES['dropdown']
             )
@@ -492,6 +471,48 @@ class IndicatorComponents:
         })
 
 
+class SummaryComponents:
+    """Componentes de resumen"""
+    
+    @staticmethod
+    def create_ozone_max_summary() -> html.Div:
+        """
+        Crea un componente visual para mostrar el resumen del máximo pronóstico de ozono.
+        Muestra: Máxima concentración pronosticada: XX ppb en estación XYX, a las XX:XX hrs.
+        """
+        return html.Div([
+            dbc.Card([
+                dbc.CardBody([
+                    html.Div(
+                        id='ozone-max-summary-content',
+                        children=[
+                            html.P(
+                                "Cargando resumen del pronóstico...",
+                                style={
+                                    'font-size': '18px',
+                                    'font-family': 'Helvetica',
+                                    'color': COLORS['text'],
+                                    'margin': '0',
+                                    'text-align': 'center'
+                                }
+                            )
+                        ],
+                        style={
+                            'padding': '15px',
+                            'text-align': 'center'
+                        }
+                    )
+                ])
+            ], style={
+                'background-color': COLORS['card'],
+                'border': f'2px solid {COLORS.get("border", "#e0e0e0")}',
+                'border-radius': '8px',
+                'box-shadow': '0 2px 8px rgba(0,0,0,0.1)',
+                'margin': '20px 0'
+            })
+        ], style=STYLES['container'])
+
+
 # Instancias globales de los componentes para fácil acceso
 nav_components = NavigationComponents()
 selector_components = SelectorComponents()
@@ -500,6 +521,7 @@ alert_components = AlertComponents()
 header_components = HeaderComponents()
 layout_containers = LayoutContainers()
 indicator_components = IndicatorComponents()
+summary_components = SummaryComponents()
 
 # Funciones de conveniencia
 def create_navbar():

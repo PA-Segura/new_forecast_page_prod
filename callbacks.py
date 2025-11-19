@@ -8,10 +8,11 @@ from typing import Any
 from datetime import datetime
 
 from visualization import create_time_series, create_indicators, create_historical_time_series
-from config import config_manager
+from config import config_manager, DEFAULT_DATE_CONFIG
 from components import indicator_components
 from pages import get_forecast_datetime_str
 from data_service import data_service
+from dash import html
 
 
 class HomePageCallbacks:
@@ -22,13 +23,133 @@ class HomePageCallbacks:
         """Registra todos los callbacks de la página principal"""
         
         @app.callback(
-            Output("o3-timeseries-home", "figure"),
+            [Output("o3-timeseries-home", "figure"),
+             Output("ozone-max-summary-content", "children")],
             Input("station-dropdown-home", "value")
         )
-        def update_o3_timeseries_home(station):
+        def update_o3_timeseries_and_summary(station):
+            """Actualiza la serie temporal de ozono Y el resumen usando los mismos datos"""
             if station is None:
                 station = 'MER'
-            return create_time_series('O3', station)
+            
+            # Crear el gráfico (que ya consulta todos los datos de pronóstico)
+            fig = create_time_series('O3', station)
+            
+            # Calcular el resumen usando los datos que ya se consultaron para el gráfico
+            try:
+                from data_service import data_service
+                from datetime import datetime, timedelta
+                
+                # Obtener la fecha actual del pronóstico
+                if DEFAULT_DATE_CONFIG['use_specific_date']:
+                    fecha_str = DEFAULT_DATE_CONFIG['specific_date']
+                else:
+                    from postgres_data_service import get_last_available_date
+                    latest_date = get_last_available_date()
+                    if latest_date:
+                        fecha_str = latest_date.strftime('%Y-%m-%d %H:%M:%S')
+                    else:
+                        fecha_str = None
+                
+                if not fecha_str:
+                    summary_html = html.P(
+                        "No hay datos de pronóstico disponibles",
+                        style={
+                            'font-size': '18px',
+                            'font-family': 'Helvetica',
+                            'color': '#666',
+                            'margin': '0',
+                            'text-align': 'center'
+                        }
+                    )
+                    return fig, summary_html
+                
+                # Obtener los pronósticos batch (los mismos que usa la serie temporal)
+                all_forecasts_batch = data_service.get_all_stations_forecast_batch(fecha_str)
+                
+                if not all_forecasts_batch:
+                    summary_html = html.P(
+                        "No hay datos de pronóstico disponibles",
+                        style={
+                            'font-size': '18px',
+                            'font-family': 'Helvetica',
+                            'color': '#666',
+                            'margin': '0',
+                            'text-align': 'center'
+                        }
+                    )
+                    return fig, summary_html
+                
+                # Calcular el máximo entre todas las estaciones y todas las horas
+                max_value = None
+                max_station = None
+                max_hour_number = None
+                fecha_base = datetime.strptime(fecha_str, '%Y-%m-%d %H:%M:%S')
+                
+                for station_code, forecast_data in all_forecasts_batch.items():
+                    if 'forecast_vector' in forecast_data:
+                        forecast_vector = forecast_data['forecast_vector']
+                        for hour_idx, value in enumerate(forecast_vector, start=1):
+                            if max_value is None or value > max_value:
+                                max_value = value
+                                max_station = station_code
+                                max_hour_number = hour_idx
+                
+                if max_value is not None and max_station is not None:
+                    # Calcular la hora real (fecha_base + max_hour_number - 1 hora de corrección)
+                    max_hour_datetime = fecha_base + timedelta(hours=max_hour_number) - timedelta(hours=1)
+                    max_hour_str = max_hour_datetime.strftime('%H:%M')
+                    
+                    # Obtener nombre de la estación
+                    stations_dict = data_service.get_all_stations()
+                    station_info = stations_dict.get(max_station, {})
+                    station_name = station_info.get('name', max_station)
+                    
+                    summary_text = f"Máxima concentración pronosticada: {max_value:.1f} ppb en {station_name}, a las {max_hour_str} hrs."
+                    
+                    print(f"✅ Resumen calculado desde datos de serie temporal: {max_value:.1f} ppb en {max_station} a las {max_hour_str}")
+                    
+                    summary_html = html.P(
+                        summary_text,
+                        style={
+                            'font-size': '18px',
+                            'font-family': 'Helvetica',
+                            'color': '#1a1a1a',
+                            'margin': '0',
+                            'text-align': 'center',
+                            'font-weight': '500'
+                        }
+                    )
+                else:
+                    summary_html = html.P(
+                        "No hay datos de pronóstico disponibles",
+                        style={
+                            'font-size': '18px',
+                            'font-family': 'Helvetica',
+                            'color': '#666',
+                            'margin': '0',
+                            'text-align': 'center'
+                        }
+                    )
+                
+                return fig, summary_html
+                
+            except Exception as e:
+                print(f"⚠️ Error calculando resumen desde datos de serie temporal: {e}")
+                import traceback
+                traceback.print_exc()
+                
+                summary_html = html.P(
+                    "Error al cargar el resumen del pronóstico",
+                    style={
+                        'font-size': '18px',
+                        'font-family': 'Helvetica',
+                        'color': '#d32f2f',
+                        'margin': '0',
+                        'text-align': 'center'
+                    }
+                )
+                return fig, summary_html
         
         
         @app.callback(
