@@ -407,6 +407,41 @@ class AirQualityApp:
                     .dash-dropdown {
                         overflow: visible !important;
                     }
+                    
+                    /* Estilizar la barra de herramientas del mapa y gráficos */
+                    #stations-map .modebar,
+                    #o3-timeseries-home .modebar {
+                        background-color: rgba(128, 128, 128, 0.7) !important;
+                        border-radius: 8px !important;
+                        padding: 4px !important;
+                        backdrop-filter: blur(10px) !important;
+                        -webkit-backdrop-filter: blur(10px) !important;
+                    }
+                    
+                    #stations-map .modebar-group,
+                    #o3-timeseries-home .modebar-group {
+                        background-color: transparent !important;
+                    }
+                    
+                    #stations-map .modebar-btn,
+                    #o3-timeseries-home .modebar-btn {
+                        color: rgba(255, 255, 255, 0.9) !important;
+                        background-color: rgba(255, 255, 255, 0.1) !important;
+                        border-radius: 4px !important;
+                        margin: 0 2px !important;
+                        transition: all 0.2s ease !important;
+                    }
+                    
+                    #stations-map .modebar-btn:hover,
+                    #o3-timeseries-home .modebar-btn:hover {
+                        background-color: rgba(255, 255, 255, 0.2) !important;
+                        color: white !important;
+                    }
+                    
+                    #stations-map .modebar-btn:active,
+                    #o3-timeseries-home .modebar-btn:active {
+                        background-color: rgba(255, 255, 255, 0.3) !important;
+                    }
                 </style>
             </head>
             <body>

@@ -89,7 +89,19 @@ class HomePage:
                     id="stations-map",
                     figure=create_professional_map(),  # Inicializar directamente
                     style={'height': '400px'},
-                    config={'scrollZoom': False, 'displayModeBar': False}
+                    config={
+                        'scrollZoom': True, 
+                        'displayModeBar': True,
+                        'displaylogo': False,  # Ocultar logo de Plotly
+                        'modeBarButtonsToRemove': ['pan2d', 'lasso2d', 'select2d', 'autoScale2d', 'resetScale2d'],  # Remover botones innecesarios
+                        'toImageButtonOptions': {
+                            'format': 'png',
+                            'filename': 'pronostico_ozono',
+                            'height': 800,
+                            'width': 1200,
+                            'scale': 2
+                        }
+                    }
                 )
             ], style=STYLES['container']),
             
@@ -140,7 +152,22 @@ class HomePage:
                     'margin-bottom': '15px',
                     'gap': '20px'
                 }),
-                dcc.Graph(id="o3-timeseries-home", config={'displayModeBar': False})
+                dcc.Graph(
+                    id="o3-timeseries-home", 
+                    config={
+                        'scrollZoom': True, 
+                        'displayModeBar': True,
+                        'displaylogo': False,  # Ocultar logo de Plotly
+                        'modeBarButtonsToRemove': ['pan2d', 'lasso2d', 'select2d', 'autoScale2d', 'resetScale2d'],  # Remover botones innecesarios
+                        'toImageButtonOptions': {
+                            'format': 'png',
+                            'filename': 'serie_tiempo_ozono',
+                            'height': 800,
+                            'width': 1200,
+                            'scale': 2
+                        }
+                    }
+                )
             ], style=STYLES['container']),
             
             
