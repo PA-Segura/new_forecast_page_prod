@@ -274,26 +274,62 @@ class SelectorComponents:
     
     @staticmethod
     def create_date_picker(date_picker_id: str = 'date-picker', default_date: str = None) -> html.Div:
-        """Crea selector de fecha simple con estilo profesional"""
+        """Crea selector de fecha simple con estilo profesional y botones de navegación"""
         from datetime import datetime, timedelta
         
         # Si no hay fecha por defecto, usar hace 7 días
         if default_date is None:
             default_date = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
         
+        # IDs para los botones de navegación
+        prev_button_id = f"{date_picker_id}-prev"
+        next_button_id = f"{date_picker_id}-next"
+        
         return html.Div([
             html.Label('Seleccionar fecha del pronóstico:', style=STYLES['label']),
-            dcc.DatePickerSingle(
-                id=date_picker_id,
-                date=default_date,
-                display_format='DD/MM/YYYY',
-                style={
-                    'width': '100%',
-                    'padding': '10px',
-                    'border-radius': '5px',
-                    'border': '1px solid #ccc'
-                }
-            )
+            html.Div([
+                dcc.DatePickerSingle(
+                    id=date_picker_id,
+                    date=default_date,
+                    display_format='DD/MM/YYYY',
+                    style={
+                        'flex': '1',
+                        'padding': '10px',
+                        'border-radius': '5px',
+                        'border': '1px solid #ccc'
+                    }
+                ),
+                dbc.Button(
+                    "←",
+                    id=prev_button_id,
+                    n_clicks=0,
+                    color="secondary",
+                    size="sm",
+                    style={
+                        'margin-left': '10px',
+                        'min-width': '40px',
+                        'font-size': '18px',
+                        'font-weight': 'bold'
+                    }
+                ),
+                dbc.Button(
+                    "→",
+                    id=next_button_id,
+                    n_clicks=0,
+                    color="secondary",
+                    size="sm",
+                    style={
+                        'margin-left': '5px',
+                        'min-width': '40px',
+                        'font-size': '18px',
+                        'font-weight': 'bold'
+                    }
+                )
+            ], style={
+                'display': 'flex',
+                'align-items': 'center',
+                'gap': '10px'
+            })
         ], style={
             'width': '100%', 
             'margin': '20px', 
@@ -305,19 +341,55 @@ class SelectorComponents:
     
     @staticmethod
     def create_hour_picker(hour_picker_id: str = 'hour-picker', default_hour: int = 9) -> html.Div:
-        """Crea selector de hora simple con estilo profesional"""
+        """Crea selector de hora simple con estilo profesional y botones de navegación"""
         # Crear opciones para todas las horas del día
         hour_options = [{'label': f'{h:02d}:00 hrs', 'value': h} for h in range(0, 24)]
         
+        # IDs para los botones de navegación
+        prev_button_id = f"{hour_picker_id}-prev"
+        next_button_id = f"{hour_picker_id}-next"
+        
         return html.Div([
             html.Label('Seleccionar hora del pronóstico:', style=STYLES['label']),
-            dcc.Dropdown(
-                id=hour_picker_id,
-                options=hour_options,
-                value=default_hour,
-                clearable=False,
-                style=STYLES['dropdown']
-            )
+            html.Div([
+                dcc.Dropdown(
+                    id=hour_picker_id,
+                    options=hour_options,
+                    value=default_hour,
+                    clearable=False,
+                    style={**STYLES['dropdown'], 'flex': '1'}
+                ),
+                dbc.Button(
+                    "←",
+                    id=prev_button_id,
+                    n_clicks=0,
+                    color="secondary",
+                    size="sm",
+                    style={
+                        'margin-left': '10px',
+                        'min-width': '40px',
+                        'font-size': '18px',
+                        'font-weight': 'bold'
+                    }
+                ),
+                dbc.Button(
+                    "→",
+                    id=next_button_id,
+                    n_clicks=0,
+                    color="secondary",
+                    size="sm",
+                    style={
+                        'margin-left': '5px',
+                        'min-width': '40px',
+                        'font-size': '18px',
+                        'font-weight': 'bold'
+                    }
+                )
+            ], style={
+                'display': 'flex',
+                'align-items': 'center',
+                'gap': '10px'
+            })
         ], style={
             'width': '100%', 
             'margin': '20px', 

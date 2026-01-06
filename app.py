@@ -21,7 +21,7 @@ import netrc
 # Importar módulos refactorizados
 from config import config_manager, COLORS, is_sqlite_mode, get_sqlite_config, is_postgresql_mode, get_postgresql_config
 from components import create_navbar
-from pages import layout_home, layout_otros_contaminantes, layout_historicos, layout_acerca
+from pages import layout_home, layout_otros_contaminantes, layout_historicos, layout_acerca, layout_debugresumen
 from callbacks import initialize_callbacks
 
 # Importar servicio PostgreSQL (sistema principal)
@@ -249,6 +249,15 @@ class AirQualityApp:
             title="Acerca del Pronóstico - Calidad del Aire",
             name="Acerca del Pronóstico",
             layout=layout_acerca
+        )
+        
+        # Registrar página de debug (no aparece en navbar)
+        dash.register_page(
+            "debugresumen",
+            path="/debugresumen",
+            title="Debug Resumen - Calidad del Aire",
+            name="Debug Resumen",
+            layout=layout_debugresumen
         )
         
         print("✅ Páginas registradas correctamente")

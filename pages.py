@@ -628,11 +628,107 @@ class AcercaPage:
         ])
 
 
+class DebugResumenPage:
+    """Página de debug para el resumen del pronóstico de ozono"""
+    
+    @staticmethod
+    def layout(**kwargs) -> List[Any]:
+        """Layout para la página de debug que solo muestra el cuadro de resumen"""
+        return [
+            # Header con título
+            header_components.create_page_title("Debug - Resumen de Pronóstico"),
+            
+            # Cuadro de resumen desde base de datos (original)
+            html.Div([
+                dbc.Card([
+                    dbc.CardBody([
+                        html.H5("Resumen desde Base de Datos", style={
+                            'font-size': '16px',
+                            'font-weight': 'bold',
+                            'margin-bottom': '10px',
+                            'text-align': 'center',
+                            'color': COLORS['text']
+                        }),
+                        html.Div(
+                            id='ozone-max-summary-content-debug',
+                            children=[
+                                html.P(
+                                    "Cargando resumen del pronóstico...",
+                                    style={
+                                        'font-size': '18px',
+                                        'font-family': 'Helvetica',
+                                        'color': COLORS['text'],
+                                        'margin': '0',
+                                        'text-align': 'center'
+                                    }
+                                )
+                            ],
+                            style={
+                                'padding': '15px',
+                                'text-align': 'center'
+                            }
+                        )
+                    ])
+                ], style={
+                    'background-color': COLORS['card'],
+                    'border': f'2px solid {COLORS.get("border", "#e0e0e0")}',
+                    'border-radius': '8px',
+                    'box-shadow': '0 2px 8px rgba(0,0,0,0.1)',
+                    'margin': '20px 0'
+                })
+            ], style=STYLES['container']),
+            
+            # Cuadro de resumen desde API externa
+            html.Div([
+                dbc.Card([
+                    dbc.CardBody([
+                        html.H5("Resumen desde API Externa", style={
+                            'font-size': '16px',
+                            'font-weight': 'bold',
+                            'margin-bottom': '10px',
+                            'text-align': 'center',
+                            'color': COLORS['text']
+                        }),
+                        html.Div(
+                            id='ozone-max-summary-api-debug',
+                            children=[
+                                html.P(
+                                    "Cargando datos de la API...",
+                                    style={
+                                        'font-size': '18px',
+                                        'font-family': 'Helvetica',
+                                        'color': COLORS['text'],
+                                        'margin': '0',
+                                        'text-align': 'center'
+                                    }
+                                )
+                            ],
+                            style={
+                                'padding': '15px',
+                                'text-align': 'center'
+                            }
+                        )
+                    ])
+                ], style={
+                    'background-color': COLORS['card'],
+                    'border': f'2px solid {COLORS.get("border", "#e0e0e0")}',
+                    'border-radius': '8px',
+                    'box-shadow': '0 2px 8px rgba(0,0,0,0.1)',
+                    'margin': '20px 0'
+                })
+            ], style=STYLES['container']),
+            
+            # Componente oculto para disparar el callback al cargar la página
+            dcc.Location(id='debug-resumen-location', refresh=False)
+        ]
+
+
 # Instancias globales de las páginas
 home_page = HomePage()
 otros_contaminantes_page = OtrosContaminantesPage()
 historicos_page = HistoricosPage()
 acerca_page = AcercaPage()
+debug_resumen_page = DebugResumenPage()
 
 # Funciones de conveniencia para compatibilidad
 def layout_home(**kwargs):
@@ -649,4 +745,8 @@ def layout_historicos(**kwargs):
 
 def layout_acerca(**kwargs):
     """Función de conveniencia para layout de página acerca"""
-    return acerca_page.layout(**kwargs) 
+    return acerca_page.layout(**kwargs)
+
+def layout_debugresumen(**kwargs):
+    """Función de conveniencia para layout de página debug resumen"""
+    return debug_resumen_page.layout(**kwargs) 

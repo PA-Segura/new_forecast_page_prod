@@ -3,7 +3,7 @@ Módulo de callbacks para la aplicación de pronóstico de calidad del aire.
 Organiza todos los callbacks por funcionalidad y página.
 """
 
-from dash import Output, Input, callback, dcc
+from dash import Output, Input, State, callback, dcc
 from typing import Any
 from datetime import datetime
 
@@ -35,94 +35,127 @@ class HomePageCallbacks:
             # Crear el gráfico (que ya consulta todos los datos de pronóstico)
             fig = create_time_series('O3', station)
             
-            # Calcular el resumen usando los datos que ya se consultaron para el gráfico
+            # Calcular el resumen usando la API externa
             try:
+                import requests
+                from datetime import datetime
                 from data_service import data_service
-                from datetime import datetime, timedelta
                 
-                # Obtener la fecha actual del pronóstico
-                if DEFAULT_DATE_CONFIG['use_specific_date']:
-                    fecha_str = DEFAULT_DATE_CONFIG['specific_date']
-                else:
-                    from postgres_data_service import get_last_available_date
-                    latest_date = get_last_available_date()
-                    if latest_date:
-                        fecha_str = latest_date.strftime('%Y-%m-%d %H:%M:%S')
+                # Para la API, usar la fecha actual (hoy) en lugar de la fecha del último pronóstico en BD
+                # Esto asegura que siempre consultemos el pronóstico más reciente disponible en la API
+                fecha_date = datetime.now()
+                
+                # Formatear fecha para la API (YYYY-MM-DD)
+                fecha_api = fecha_date.strftime('%Y-%m-%d')
+                
+                # Construir URL de la API
+                api_url = f"http://132.248.8.98:58888/ai_vi_transformer01/ozono/CDMX/{fecha_api}"
+                
+                print(f"🔍 [HOME] Consultando API: {api_url}")
+                
+                # Hacer petición a la API
+                response = requests.get(api_url, timeout=10)
+                response.raise_for_status()
+                
+                # Parsear JSON
+                data = response.json()
+                
+                # Verificar que hay datos
+                if not data or 'pronos' not in data or not data['pronos']:
+                    summary_html = html.P(
+                        "No hay datos de pronóstico disponibles en la API",
+                        style={
+                            'font-size': '18px',
+                            'font-family': 'Helvetica',
+                            'color': '#666',
+                            'margin': '0',
+                            'text-align': 'center'
+                        }
+                    )
+                    return fig, summary_html
+                
+                # Obtener fecha y hora del pronóstico desde la respuesta de la API
+                fecha_pron_str = data.get('fecha_pron', fecha_api)
+                
+                # Intentar parsear la fecha con hora, si no tiene hora usar 7 AM por defecto
+                try:
+                    # Intentar parsear con hora
+                    if 'T' in fecha_pron_str or ' ' in fecha_pron_str:
+                        # Formato con hora (ISO o con espacio)
+                        if 'T' in fecha_pron_str:
+                            fecha_pron_dt = datetime.fromisoformat(fecha_pron_str.replace('Z', '+00:00'))
+                        else:
+                            fecha_pron_dt = datetime.strptime(fecha_pron_str, '%Y-%m-%d %H:%M:%S')
                     else:
-                        fecha_str = None
+                        # Solo fecha, agregar 7 AM
+                        fecha_pron_dt = datetime.strptime(fecha_pron_str, '%Y-%m-%d')
+                        fecha_pron_dt = fecha_pron_dt.replace(hour=7, minute=0, second=0)
+                except:
+                    # Si falla el parsing, usar la fecha de la consulta con 7 AM
+                    try:
+                        fecha_pron_dt = datetime.strptime(fecha_pron_str, '%Y-%m-%d')
+                        fecha_pron_dt = fecha_pron_dt.replace(hour=7, minute=0, second=0)
+                    except:
+                        fecha_pron_dt = fecha_date.replace(hour=7, minute=0, second=0)
                 
-                if not fecha_str:
-                    summary_html = html.P(
-                        "No hay datos de pronóstico disponibles",
-                        style={
-                            'font-size': '18px',
-                            'font-family': 'Helvetica',
-                            'color': '#666',
-                            'margin': '0',
-                            'text-align': 'center'
-                        }
-                    )
-                    return fig, summary_html
+                # Formatear fecha y hora para mostrar
+                hora_formateada = fecha_pron_dt.strftime('%H:%M')
                 
-                # Obtener los pronósticos batch (los mismos que usa la serie temporal)
-                all_forecasts_batch = data_service.get_all_stations_forecast_batch(fecha_str)
+                # Formatear fecha en español manualmente
+                meses_esp = {
+                    1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',
+                    5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto',
+                    9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+                }
+                dia = fecha_pron_dt.day
+                mes = meses_esp[fecha_pron_dt.month]
+                año = fecha_pron_dt.year
+                fecha_formateada = f"{dia} de {mes} de {año}"
                 
-                if not all_forecasts_batch:
-                    summary_html = html.P(
-                        "No hay datos de pronóstico disponibles",
-                        style={
-                            'font-size': '18px',
-                            'font-family': 'Helvetica',
-                            'color': '#666',
-                            'margin': '0',
-                            'text-align': 'center'
-                        }
-                    )
-                    return fig, summary_html
-                
-                # Calcular el máximo entre todas las estaciones y todas las horas
+                # Encontrar el máximo valor en el array pronos
+                max_pron = None
                 max_value = None
-                max_station = None
-                max_hour_number = None
-                fecha_base = datetime.strptime(fecha_str, '%Y-%m-%d %H:%M:%S')
                 
-                for station_code, forecast_data in all_forecasts_batch.items():
-                    if 'forecast_vector' in forecast_data:
-                        forecast_vector = forecast_data['forecast_vector']
-                        for hour_idx, value in enumerate(forecast_vector, start=1):
-                            if max_value is None or value > max_value:
-                                max_value = value
-                                max_station = station_code
-                                max_hour_number = hour_idx
+                for pron in data['pronos']:
+                    valor = pron.get('valor')
+                    if valor is not None:
+                        if max_value is None or valor > max_value:
+                            max_value = valor
+                            max_pron = pron
                 
-                if max_value is not None and max_station is not None:
-                    # Calcular la hora real (fecha_base + max_hour_number - 1 hora de corrección)
-                    max_hour_datetime = fecha_base + timedelta(hours=max_hour_number) - timedelta(hours=1)
-                    max_hour_str = max_hour_datetime.strftime('%H:%M')
+                if max_pron and max_value is not None:
+                    # Obtener información del máximo
+                    id_est = max_pron.get('id_est', 'N/A')
+                    hora = max_pron.get('hora', 'N/A')
                     
-                    # Obtener nombre de la estación
-                    stations_dict = data_service.get_all_stations()
-                    station_info = stations_dict.get(max_station, {})
-                    station_name = station_info.get('name', max_station)
+                    # Obtener nombre de la estación si está disponible
+                    try:
+                        stations_dict = data_service.get_all_stations()
+                        station_info = stations_dict.get(id_est, {})
+                        station_name = station_info.get('name', id_est)
+                    except:
+                        station_name = id_est
                     
-                    summary_text = f"Máxima concentración pronosticada: {max_value:.1f} ppb en {station_name}, a las {max_hour_str} hrs."
+                    print(f"✅ [HOME] Resumen desde API: {max_value:.1f} ppb en {id_est} a las {hora} (Pronóstico: {fecha_formateada} {hora_formateada})")
                     
-                    print(f"✅ Resumen calculado desde datos de serie temporal: {max_value:.1f} ppb en {max_station} a las {max_hour_str}")
-                    
-                    summary_html = html.P(
-                        summary_text,
-                        style={
-                            'font-size': '18px',
-                            'font-family': 'Helvetica',
-                            'color': '#1a1a1a',
-                            'margin': '0',
-                            'text-align': 'center',
-                            'font-weight': '500'
-                        }
-                    )
+                    summary_html = html.P([
+                        f"Máxima concentración pronosticada: {max_value:.1f} ppb en {station_name}, a las {hora} hrs.",
+                        html.Br(),
+                        html.Span(
+                            f"(Pronóstico del {fecha_formateada} a las {hora_formateada} hrs.)",
+                            style={'font-style': 'italic'}
+                        )
+                    ], style={
+                        'font-size': '18px',
+                        'font-family': 'Helvetica',
+                        'color': '#1a1a1a',
+                        'margin': '0',
+                        'text-align': 'center',
+                        'font-weight': '500'
+                    })
                 else:
                     summary_html = html.P(
-                        "No hay datos de pronóstico disponibles",
+                        "No se encontró valor máximo en los datos de la API",
                         style={
                             'font-size': '18px',
                             'font-family': 'Helvetica',
@@ -134,13 +167,26 @@ class HomePageCallbacks:
                 
                 return fig, summary_html
                 
+            except requests.exceptions.RequestException as e:
+                print(f"⚠️ [HOME] Error de conexión con API: {e}")
+                summary_html = html.P(
+                    f"Error al conectar con la API: {str(e)}",
+                    style={
+                        'font-size': '18px',
+                        'font-family': 'Helvetica',
+                        'color': '#d32f2f',
+                        'margin': '0',
+                        'text-align': 'center'
+                    }
+                )
+                return fig, summary_html
             except Exception as e:
-                print(f"⚠️ Error calculando resumen desde datos de serie temporal: {e}")
+                print(f"⚠️ [HOME] Error calculando resumen desde API: {e}")
                 import traceback
                 traceback.print_exc()
                 
                 summary_html = html.P(
-                    "Error al cargar el resumen del pronóstico",
+                    f"Error al procesar datos de la API: {str(e)}",
                     style={
                         'font-size': '18px',
                         'font-family': 'Helvetica',
@@ -386,6 +432,361 @@ class HistoricosCallbacks:
             station_name = stations_dict.get(station, {}).get('name', station)
             
             return f'Concentraciones de {pollutant_name} ({units}) - Pronóstico del {date_str} a las {hour:02d}:00 hrs. - {station_name}'
+        
+        # Callbacks para navegación de fecha (anterior/siguiente)
+        @app.callback(
+            Output("date-picker-historicos", "date"),
+            Input("date-picker-historicos-prev", "n_clicks"),
+            Input("date-picker-historicos-next", "n_clicks"),
+            State("date-picker-historicos", "date"),
+            prevent_initial_call=True
+        )
+        def navigate_date(prev_clicks, next_clicks, current_date):
+            """Navega a la fecha anterior o siguiente"""
+            from dash import callback_context
+            from datetime import datetime, timedelta
+            
+            if current_date is None:
+                current_date = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
+            
+            # Determinar qué botón se presionó
+            ctx = callback_context
+            if not ctx.triggered:
+                return current_date
+            
+            button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+            current_dt = datetime.strptime(current_date, '%Y-%m-%d')
+            
+            if button_id == 'date-picker-historicos-prev':
+                # Día anterior
+                new_date = (current_dt - timedelta(days=1)).strftime('%Y-%m-%d')
+            elif button_id == 'date-picker-historicos-next':
+                # Día siguiente
+                new_date = (current_dt + timedelta(days=1)).strftime('%Y-%m-%d')
+            else:
+                return current_date
+            
+            return new_date
+        
+        # Callbacks para navegación de hora (anterior/siguiente)
+        @app.callback(
+            Output("hour-picker-historicos", "value"),
+            Input("hour-picker-historicos-prev", "n_clicks"),
+            Input("hour-picker-historicos-next", "n_clicks"),
+            State("hour-picker-historicos", "value"),
+            prevent_initial_call=True
+        )
+        def navigate_hour(prev_clicks, next_clicks, current_hour):
+            """Navega a la hora anterior o siguiente"""
+            from dash import callback_context
+            
+            if current_hour is None:
+                current_hour = 9
+            
+            # Determinar qué botón se presionó
+            ctx = callback_context
+            if not ctx.triggered:
+                return current_hour
+            
+            button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+            
+            if button_id == 'hour-picker-historicos-prev':
+                # Hora anterior (circular: 23 -> 22 -> ... -> 0 -> 23)
+                new_hour = (current_hour - 1) % 24
+            elif button_id == 'hour-picker-historicos-next':
+                # Hora siguiente (circular: 0 -> 1 -> ... -> 23 -> 0)
+                new_hour = (current_hour + 1) % 24
+            else:
+                return current_hour
+            
+            return new_hour
+
+
+class DebugResumenCallbacks:
+    """Callbacks específicos para la página de debug resumen"""
+    
+    @staticmethod
+    def register_debug_resumen_callbacks(app):
+        """Registra todos los callbacks de la página de debug resumen"""
+        
+        @app.callback(
+            Output("ozone-max-summary-content-debug", "children"),
+            Input("debug-resumen-location", "pathname")
+        )
+        def update_debug_summary(pathname):
+            """Actualiza el resumen del pronóstico para la página de debug"""
+            try:
+                from datetime import datetime, timedelta
+                
+                # Obtener la fecha actual del pronóstico
+                if DEFAULT_DATE_CONFIG['use_specific_date']:
+                    fecha_str = DEFAULT_DATE_CONFIG['specific_date']
+                else:
+                    from postgres_data_service import get_last_available_date
+                    latest_date = get_last_available_date()
+                    if latest_date:
+                        fecha_str = latest_date.strftime('%Y-%m-%d %H:%M:%S')
+                    else:
+                        fecha_str = None
+                
+                if not fecha_str:
+                    return html.P(
+                        "No hay datos de pronóstico disponibles",
+                        style={
+                            'font-size': '18px',
+                            'font-family': 'Helvetica',
+                            'color': '#666',
+                            'margin': '0',
+                            'text-align': 'center'
+                        }
+                    )
+                
+                # Obtener los pronósticos batch
+                all_forecasts_batch = data_service.get_all_stations_forecast_batch(fecha_str)
+                
+                if not all_forecasts_batch:
+                    return html.P(
+                        "No hay datos de pronóstico disponibles",
+                        style={
+                            'font-size': '18px',
+                            'font-family': 'Helvetica',
+                            'color': '#666',
+                            'margin': '0',
+                            'text-align': 'center'
+                        }
+                    )
+                
+                # Calcular el máximo entre todas las estaciones y todas las horas
+                max_value = None
+                max_station = None
+                max_hour_number = None
+                fecha_base = datetime.strptime(fecha_str, '%Y-%m-%d %H:%M:%S')
+                
+                for station_code, forecast_data in all_forecasts_batch.items():
+                    if 'forecast_vector' in forecast_data:
+                        forecast_vector = forecast_data['forecast_vector']
+                        for hour_idx, value in enumerate(forecast_vector, start=1):
+                            if max_value is None or value > max_value:
+                                max_value = value
+                                max_station = station_code
+                                max_hour_number = hour_idx
+                
+                if max_value is not None and max_station is not None:
+                    # Calcular la hora real (fecha_base + max_hour_number - 1 hora de corrección)
+                    max_hour_datetime = fecha_base + timedelta(hours=max_hour_number) - timedelta(hours=1)
+                    max_hour_str = max_hour_datetime.strftime('%H:%M')
+                    
+                    # Obtener nombre de la estación
+                    stations_dict = data_service.get_all_stations()
+                    station_info = stations_dict.get(max_station, {})
+                    station_name = station_info.get('name', max_station)
+                    
+                    summary_text = f"Máxima concentración pronosticada: {max_value:.1f} ppb en {station_name}, a las {max_hour_str} hrs."
+                    
+                    print(f"✅ [DEBUG] Resumen calculado: {max_value:.1f} ppb en {max_station} a las {max_hour_str}")
+                    
+                    return html.P(
+                        summary_text,
+                        style={
+                            'font-size': '18px',
+                            'font-family': 'Helvetica',
+                            'color': '#1a1a1a',
+                            'margin': '0',
+                            'text-align': 'center',
+                            'font-weight': '500'
+                        }
+                    )
+                else:
+                    return html.P(
+                        "No hay datos de pronóstico disponibles",
+                        style={
+                            'font-size': '18px',
+                            'font-family': 'Helvetica',
+                            'color': '#666',
+                            'margin': '0',
+                            'text-align': 'center'
+                        }
+                    )
+                
+            except Exception as e:
+                print(f"⚠️ [DEBUG] Error calculando resumen: {e}")
+                import traceback
+                traceback.print_exc()
+                
+                return html.P(
+                    "Error al cargar el resumen del pronóstico",
+                    style={
+                        'font-size': '18px',
+                        'font-family': 'Helvetica',
+                        'color': '#d32f2f',
+                        'margin': '0',
+                        'text-align': 'center'
+                    }
+                )
+        
+        @app.callback(
+            Output("ozone-max-summary-api-debug", "children"),
+            Input("debug-resumen-location", "pathname")
+        )
+        def update_debug_summary_api(pathname):
+            """Actualiza el resumen del pronóstico desde la API externa"""
+            try:
+                import requests
+                from datetime import datetime
+                
+                # Para la API, usar la fecha actual (hoy) en lugar de la fecha del último pronóstico en BD
+                # Esto asegura que siempre consultemos el pronóstico más reciente disponible en la API
+                fecha_date = datetime.now()
+                
+                # Formatear fecha para la API (YYYY-MM-DD)
+                fecha_api = fecha_date.strftime('%Y-%m-%d')
+                
+                # Construir URL de la API
+                api_url = f"http://132.248.8.98:58888/ai_vi_transformer01/ozono/CDMX/{fecha_api}"
+                
+                print(f"🔍 [DEBUG API] Consultando: {api_url}")
+                
+                # Hacer petición a la API
+                response = requests.get(api_url, timeout=10)
+                response.raise_for_status()
+                
+                # Parsear JSON
+                data = response.json()
+                
+                # Verificar que hay datos
+                if not data or 'pronos' not in data or not data['pronos']:
+                    return html.P(
+                        "No hay datos de pronóstico disponibles en la API",
+                        style={
+                            'font-size': '18px',
+                            'font-family': 'Helvetica',
+                            'color': '#666',
+                            'margin': '0',
+                            'text-align': 'center'
+                        }
+                    )
+                
+                # Obtener fecha y hora del pronóstico desde la respuesta de la API
+                fecha_pron_str = data.get('fecha_pron', fecha_api)
+                
+                # Intentar parsear la fecha con hora, si no tiene hora usar 7 AM por defecto
+                try:
+                    # Intentar parsear con hora
+                    if 'T' in fecha_pron_str or ' ' in fecha_pron_str:
+                        # Formato con hora (ISO o con espacio)
+                        if 'T' in fecha_pron_str:
+                            fecha_pron_dt = datetime.fromisoformat(fecha_pron_str.replace('Z', '+00:00'))
+                        else:
+                            fecha_pron_dt = datetime.strptime(fecha_pron_str, '%Y-%m-%d %H:%M:%S')
+                    else:
+                        # Solo fecha, agregar 7 AM
+                        fecha_pron_dt = datetime.strptime(fecha_pron_str, '%Y-%m-%d')
+                        fecha_pron_dt = fecha_pron_dt.replace(hour=7, minute=0, second=0)
+                except:
+                    # Si falla el parsing, usar la fecha de la consulta con 7 AM
+                    try:
+                        fecha_pron_dt = datetime.strptime(fecha_pron_str, '%Y-%m-%d')
+                        fecha_pron_dt = fecha_pron_dt.replace(hour=7, minute=0, second=0)
+                    except:
+                        fecha_pron_dt = fecha_date.replace(hour=7, minute=0, second=0)
+                
+                # Formatear fecha y hora para mostrar
+                hora_formateada = fecha_pron_dt.strftime('%H:%M')
+                
+                # Formatear fecha en español manualmente
+                meses_esp = {
+                    1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',
+                    5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto',
+                    9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+                }
+                dia = fecha_pron_dt.day
+                mes = meses_esp[fecha_pron_dt.month]
+                año = fecha_pron_dt.year
+                fecha_formateada = f"{dia} de {mes} de {año}"
+                
+                # Encontrar el máximo valor en el array pronos
+                max_pron = None
+                max_value = None
+                
+                for pron in data['pronos']:
+                    valor = pron.get('valor')
+                    if valor is not None:
+                        if max_value is None or valor > max_value:
+                            max_value = valor
+                            max_pron = pron
+                
+                if max_pron and max_value is not None:
+                    # Obtener información del máximo
+                    id_est = max_pron.get('id_est', 'N/A')
+                    hora = max_pron.get('hora', 'N/A')
+                    dia = max_pron.get('dia', fecha_api)
+                    
+                    # Obtener nombre de la estación si está disponible
+                    try:
+                        stations_dict = data_service.get_all_stations()
+                        station_info = stations_dict.get(id_est, {})
+                        station_name = station_info.get('name', id_est)
+                    except:
+                        station_name = id_est
+                    
+                    summary_text = f"Máxima concentración pronosticada: {max_value:.1f} ppb en {station_name}, a las {hora} hrs. (Pronóstico del {fecha_formateada} a las {hora_formateada} hrs.)"
+                    
+                    print(f"✅ [DEBUG API] Resumen calculado: {max_value:.1f} ppb en {id_est} a las {hora} (Pronóstico: {fecha_formateada} {hora_formateada})")
+                    
+                    return html.P([
+                        f"Máxima concentración pronosticada: {max_value:.1f} ppb en {station_name}, a las {hora} hrs.",
+                        html.Br(),
+                        html.Span(
+                            f"(Pronóstico del {fecha_formateada} a las {hora_formateada} hrs.)",
+                            style={'font-style': 'italic'}
+                        )
+                    ], style={
+                        'font-size': '18px',
+                        'font-family': 'Helvetica',
+                        'color': '#1a1a1a',
+                        'margin': '0',
+                        'text-align': 'center',
+                        'font-weight': '500'
+                    })
+                else:
+                    return html.P(
+                        "No se encontró valor máximo en los datos de la API",
+                        style={
+                            'font-size': '18px',
+                            'font-family': 'Helvetica',
+                            'color': '#666',
+                            'margin': '0',
+                            'text-align': 'center'
+                        }
+                    )
+                
+            except requests.exceptions.RequestException as e:
+                print(f"⚠️ [DEBUG API] Error de conexión: {e}")
+                return html.P(
+                    f"Error al conectar con la API: {str(e)}",
+                    style={
+                        'font-size': '18px',
+                        'font-family': 'Helvetica',
+                        'color': '#d32f2f',
+                        'margin': '0',
+                        'text-align': 'center'
+                    }
+                )
+            except Exception as e:
+                print(f"⚠️ [DEBUG API] Error calculando resumen: {e}")
+                import traceback
+                traceback.print_exc()
+                
+                return html.P(
+                    f"Error al procesar datos de la API: {str(e)}",
+                    style={
+                        'font-size': '18px',
+                        'font-family': 'Helvetica',
+                        'color': '#d32f2f',
+                        'margin': '0',
+                        'text-align': 'center'
+                    }
+                )
 
 
 class CallbackManager:
@@ -396,12 +797,14 @@ class CallbackManager:
         self.home_callbacks = HomePageCallbacks()
         self.otros_callbacks = OtrosContaminantesCallbacks()
         self.historicos_callbacks = HistoricosCallbacks()
+        self.debug_resumen_callbacks = DebugResumenCallbacks()
     
     def register_all_callbacks(self):
         """Registra todos los callbacks de la aplicación"""
         self.home_callbacks.register_home_callbacks(self.app)
         self.otros_callbacks.register_otros_contaminantes_callbacks(self.app)
         self.historicos_callbacks.register_historicos_callbacks(self.app)
+        self.debug_resumen_callbacks.register_debug_resumen_callbacks(self.app)
         
         print("✅ Todos los callbacks registrados correctamente")
 
