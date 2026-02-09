@@ -7,6 +7,7 @@ Usa las credenciales AMATE-SOLOREAD y las nuevas tablas forecast_*.
 
 import psycopg2
 import netrc
+import os
 import pandas as pd
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple, Any
@@ -25,22 +26,31 @@ class PostgresConnection:
         self._connect()
     
     def _connect(self):
-        """Establece conexión a PostgreSQL usando credenciales AMATE-SOLOREAD"""
+        """Establece conexión a PostgreSQL usando credenciales AMATE-SOLOREAD (igual que config.py)"""
+        def get_db_credentials():
+            """Obtiene credenciales de BD desde .netrc"""
+            try:
+                n = netrc.netrc()
+                login, account, password = n.authenticators('AMATE-SOLOREAD')
+                return login, password, account
+            except (FileNotFoundError, netrc.NetrcParseError):
+                # Fallback a variables de entorno
+                return os.getenv('DB_USER'), os.getenv('DB_PASSWORD'), os.getenv('DB_HOST')
+        
         try:
-            # Obtener credenciales desde .netrc
-            secrets = netrc.netrc()
-            login, account, password = secrets.hosts['AMATE-SOLOREAD']
+            # Obtener credenciales (igual que config.py)
+            login, password, account = get_db_credentials()
             
             # Configuración de conexión
-            host = account or '132.248.8.152'  # Host por defecto
-            database = 'contingencia'
+            host = account or os.getenv('DB_HOST', 'localhost')
+            database = os.getenv('DB_NAME', 'contingencia')
             
             self.connection = psycopg2.connect(
                 database=database,
-                user=login,
+                user=login or os.getenv('DB_USER', 'postgres'),
                 host=host,
-                password=password,
-                port=5432
+                password=password or os.getenv('DB_PASSWORD', ''),
+                port=int(os.getenv('DB_PORT', '5432'))
             )
             
             logger.info(f"✅ Conectado a PostgreSQL en {host}/{database}")

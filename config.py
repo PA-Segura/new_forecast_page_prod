@@ -85,8 +85,9 @@ class AppConfig:
         # =============================================================================
         self.USE_SQLITE_CONTINGENCY = False  # Desactivado - ahora usamos PostgreSQL
         self.USE_POSTGRESQL_PRODUCTION = True  # Sistema principal PostgreSQL
-        self.SQLITE_FORECAST_DB_PATH = "/home/pedro/git2/gitflow2/news_july/ensamble_ai_pollution_forecast/forecast_predictions.db"
-        self.SQLITE_HISTORICAL_DB_PATH = "/home/pedro/git2/gitflow2/hack_sqlite/ensamble_ai_pollution_forecast/contingencia_sqlite_bd.db"
+        # Rutas de bases de datos SQLite (usar variables de entorno o rutas relativas)
+        self.SQLITE_FORECAST_DB_PATH = os.getenv('SQLITE_FORECAST_DB_PATH', './data/forecast_predictions.db')
+        self.SQLITE_HISTORICAL_DB_PATH = os.getenv('SQLITE_HISTORICAL_DB_PATH', './data/contingencia_sqlite_bd.db')
         
         # Configuración por defecto - Si PostgreSQL está activado, usar modo PRODUCTION
         self.environment = Environment.PRODUCTION
@@ -114,7 +115,7 @@ class AppConfig:
         # Configuración PostgreSQL de producción
         login, password, account = get_db_credentials()
         self.db_config = {
-            'host': account or os.getenv('DB_HOST', '132.248.8.152'),
+            'host': account or os.getenv('DB_HOST', 'localhost'),
             'port': os.getenv('DB_PORT', '5432'),
             'database': os.getenv('DB_NAME', 'contingencia'),
             'user': login or 'forecast_user',

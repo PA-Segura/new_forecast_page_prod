@@ -64,4 +64,5 @@ dependencies:
       - uvloop==0.22.1
       - watchfiles==1.1.1
       - websockets==15.0.1
-prefix: /home/pedro/Workspace/.conda/envs/forecast_api
+# prefix: Configurar según tu entorno local
+# prefix: /path/to/your/conda/envs/forecast_api

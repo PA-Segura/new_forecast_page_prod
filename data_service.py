@@ -842,7 +842,7 @@ class EfficientAirQualityDataService(AirQualityDataService):
                     print(f"🔥 QUERY EFICIENTE HISTÓRICO ({pollutant_key}): 1 query para {len(stations_list)} estaciones")
                     print(f"   Tabla: {table_name}, Período: {ref_start_str} → {ref_end_str}")
                     
-                    # Usar PostgreSQL actual (132.248.8.152) para datos históricos
+                    # Usar PostgreSQL para datos históricos
                     try:
                         from postgres_data_service import ForecastDataService
                         postgres_service = ForecastDataService()
@@ -913,7 +913,7 @@ class EfficientAirQualityDataService(AirQualityDataService):
                     print(f"❌ Error obteniendo datos históricos desde SQLite: {e}")
                     return pd.DataFrame()
             else:
-                # Usar PostgreSQL actual (132.248.8.152) para datos históricos
+                # Usar PostgreSQL para datos históricos
                 print(f"🔄 Usando PostgreSQL actual para datos históricos batch")
                 try:
                     from postgres_data_service import ForecastDataService
@@ -998,7 +998,7 @@ class EfficientAirQualityDataService(AirQualityDataService):
                     # ✅ CORRECTO - busca datos nuevos
                     print(f"🔥 QUERY EFICIENTE (Pronósticos O3 reales): 1 query para {len(stations_list)} estaciones")
                     
-                    # Usar PostgreSQL actual (132.248.8.152) para pronósticos
+                    # Usar PostgreSQL para pronósticos
                     try:
                         from postgres_data_service import ForecastDataService
                         postgres_service = ForecastDataService()
@@ -1069,7 +1069,7 @@ class EfficientAirQualityDataService(AirQualityDataService):
                     print(f"❌ Error obteniendo pronósticos desde SQLite: {e}")
                     return {}
             else:
-                # Usar PostgreSQL actual (132.248.8.152) para pronósticos
+                # Usar PostgreSQL para pronósticos
                 print(f"🔄 Usando PostgreSQL actual para pronósticos batch")
                 try:
                     from postgres_data_service import ForecastDataService

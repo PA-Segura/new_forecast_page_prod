@@ -57,3 +57,25 @@ env/
 .DS_Store
 Thumbs.db
 
+# Archivos sensibles de configuración
+.netrc
+.env
+.env.local
+*.key
+*.pem
+*.secret
+
+# Archivos de backup
+*.py~
+*.oldpy
+*.bak
+*.backup
+
+# Logs
+*.log
+server_restart.log
+
+# Archivos temporales
+*.tmp
+*.temp
+

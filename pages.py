@@ -651,7 +651,7 @@ class DebugResumenPage:
                         }),
                         html.Div(
                             id='ozone-max-summary-content-debug',
-                            children=[
+                            children=[  
                                 html.P(
                                     "Cargando resumen del pronóstico...",
                                     style={
