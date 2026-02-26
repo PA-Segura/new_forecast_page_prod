@@ -198,7 +198,7 @@ Los indicadores de probabilidad muestran la estimación del modelo sobre la prob
 #### 7.4.1 Formulación Matemática
 
 Las probabilidades se calculan modelando el error del pronóstico como una variable aleatoria con distribución normal. Sea {y}_t el valor pronosticado para la hora t, y sea  e = y - \hat{y} el error de pronóstico, donde y es el valor real observado. Se asume que el error sigue una distribución normal:
-![Distribución del error e = y - ŷ](assets/e_y_ydot__e_N_mu_sigma.png)
+![Distribución del error e = y - ŷ](../assets/e_y_ydot__e_N_mu_sigma.png)
 
 
 donde \mu  y \sigma son la media y desviación estándar del error, estimados a partir de datos históricos de validación del modelo.
