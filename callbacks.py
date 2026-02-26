@@ -7,7 +7,7 @@ from dash import Output, Input, State, callback, dcc
 from typing import Any
 from datetime import datetime
 
-from visualization import create_time_series, create_indicators, create_historical_time_series
+from visualization import create_time_series, create_indicators, create_historical_time_series, get_historical_data_for_csv
 from config import config_manager, DEFAULT_DATE_CONFIG
 from components import indicator_components
 from pages import get_forecast_datetime_str
@@ -500,6 +500,39 @@ class HistoricosCallbacks:
                 return current_hour
             
             return new_hour
+
+        @app.callback(
+            Output("download-csv-historicos", "data"),
+            Input("btn-download-csv-historicos", "n_clicks"),
+            [State("date-picker-historicos", "date"),
+             State("hour-picker-historicos", "value"),
+             State("pollutant-dropdown-historicos", "value"),
+             State("station-dropdown-historicos", "value")],
+            prevent_initial_call=True
+        )
+        def download_csv_historicos(n_clicks, date, hour, pollutant, station):
+            """Genera y descarga CSV con datos de pronóstico y observaciones"""
+            if not n_clicks:
+                return None
+
+            from datetime import timedelta
+            if date is None:
+                date = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
+            if hour is None:
+                hour = 9
+            if pollutant is None:
+                pollutant = 'O3'
+            if station is None:
+                station = 'MER'
+
+            forecast_datetime_str = f"{date} {hour:02d}:00:00"
+            df = get_historical_data_for_csv(pollutant, station, forecast_datetime_str)
+
+            if df.empty:
+                return None
+
+            filename = f"historico_{pollutant}_{station}_{date}_{hour:02d}h.csv"
+            return dcc.send_data_frame(df.to_csv, filename, index=False)
 
 
 class DebugResumenCallbacks:

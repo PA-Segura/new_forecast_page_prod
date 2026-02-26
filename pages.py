@@ -331,7 +331,18 @@ class HistoricosPage:
                 html.H3('Pronóstico Histórico', 
                         id='pollutant-title-historicos', 
                         style=STYLES['title']),
-                dcc.Graph(id="pollutant-timeseries-historicos", config={'displayModeBar': False})
+                dcc.Graph(id="pollutant-timeseries-historicos", config={'displayModeBar': False}),
+                html.Div([
+                    dbc.Button(
+                        [html.I(className="fas fa-download me-2"), "Descargar CSV"],
+                        id="btn-download-csv-historicos",
+                        color="primary",
+                        outline=True,
+                        size="sm",
+                        className="mt-2"
+                    ),
+                    dcc.Download(id="download-csv-historicos")
+                ], style={'textAlign': 'right', 'padding': '0 10px 10px 0'})
             ], style=STYLES['container']),
             
             # Navegación de regreso

@@ -981,7 +981,7 @@ def create_historical_time_series(pollutant: str, station: str, forecast_date: s
                         if hour_col in row and pd.notna(row[hour_col]):
                             timestamp = fecha_base + timedelta(hours=hour_num)
                             forecast_timestamps.append(timestamp)
-                            forecast_values.append(float(row[hour_col]))
+                            forecast_values.append(max(0.0, float(row[hour_col])))  # QA: negativos a 0
                     
                     if forecast_timestamps:
                         fig.add_trace(go.Scatter(
@@ -1023,7 +1023,7 @@ def create_historical_time_series(pollutant: str, station: str, forecast_date: s
                     if hour_col in row and pd.notna(row[hour_col]):
                         timestamp = fecha_base + timedelta(hours=hour_num)
                         forecast_timestamps.append(timestamp)
-                        forecast_values.append(float(row[hour_col]))
+                        forecast_values.append(max(0.0, float(row[hour_col])))  # QA: negativos a 0
                 
                 if forecast_timestamps:
                     fig.add_trace(go.Scatter(
@@ -1074,4 +1074,86 @@ def create_historical_time_series(pollutant: str, station: str, forecast_date: s
         
         return fig
     
-    return fig 
+    return fig
+
+
+def get_historical_data_for_csv(pollutant: str, station: str, forecast_date: str) -> pd.DataFrame:
+    """
+    Extrae datos de pronóstico y observaciones para exportar a CSV.
+    Retorna un DataFrame con columnas: fecha_hora, observado, pronostico
+    """
+    from postgres_data_service import ForecastDataService
+    from data_service import data_service
+
+    try:
+        if len(forecast_date) == 10:
+            forecast_datetime = datetime.strptime(forecast_date, '%Y-%m-%d')
+            forecast_datetime = forecast_datetime.replace(hour=9, minute=0, second=0)
+        else:
+            forecast_datetime = datetime.strptime(forecast_date, '%Y-%m-%d %H:%M:%S')
+    except:
+        forecast_datetime = datetime.now().replace(hour=9, minute=0, second=0, microsecond=0)
+
+    forecast_date_str = forecast_datetime.strftime('%Y-%m-%d %H:%M:%S')
+
+    start_time = forecast_datetime - timedelta(hours=12)
+    end_time = forecast_datetime + timedelta(hours=36)
+    start_time_str = start_time.strftime('%Y-%m-%d %H:%M:%S')
+    end_time_str = end_time.strftime('%Y-%m-%d %H:%M:%S')
+
+    # Observaciones
+    try:
+        df_obs_all = data_service.get_all_stations_historical_batch(
+            pollutant if pollutant != 'PM2.5' else 'PM2.5',
+            start_time_str, end_time_str
+        )
+        if not df_obs_all.empty:
+            df_obs = df_obs_all[df_obs_all['id_est'] == station][['timestamp', 'value']].copy()
+            df_obs = df_obs.rename(columns={'timestamp': 'fecha_hora', 'value': 'observado'})
+            df_obs['fecha_hora'] = pd.to_datetime(df_obs['fecha_hora'])
+        else:
+            df_obs = pd.DataFrame(columns=['fecha_hora', 'observado'])
+    except Exception:
+        df_obs = pd.DataFrame(columns=['fecha_hora', 'observado'])
+
+    # Pronóstico
+    try:
+        service = ForecastDataService()
+        df_forecast_all = service.get_ozone_forecast(forecast_date_str)
+        service.close()
+
+        if not df_forecast_all.empty:
+            df_sta = df_forecast_all[df_forecast_all['id_est'] == station]
+            if not df_sta.empty:
+                row = df_sta.iloc[0]
+                fecha_base = pd.to_datetime(row['fecha'])
+                records = []
+                for hour_num in range(1, 25):
+                    hour_col = f'hour_p{hour_num:02d}'
+                    if hour_col in row and pd.notna(row[hour_col]):
+                        records.append({
+                            'fecha_hora': fecha_base + timedelta(hours=hour_num),
+                            'pronostico': max(0.0, float(row[hour_col]))  # QA: negativos a 0
+                        })
+                df_pron = pd.DataFrame(records)
+            else:
+                df_pron = pd.DataFrame(columns=['fecha_hora', 'pronostico'])
+        else:
+            df_pron = pd.DataFrame(columns=['fecha_hora', 'pronostico'])
+    except Exception:
+        df_pron = pd.DataFrame(columns=['fecha_hora', 'pronostico'])
+
+    # Merge por fecha_hora
+    if df_obs.empty and df_pron.empty:
+        return pd.DataFrame(columns=['fecha_hora', 'observado', 'pronostico'])
+
+    if df_obs.empty:
+        df_pron['observado'] = pd.NA
+        return df_pron[['fecha_hora', 'observado', 'pronostico']]
+
+    if df_pron.empty:
+        df_obs['pronostico'] = pd.NA
+        return df_obs[['fecha_hora', 'observado', 'pronostico']]
+
+    df_merged = pd.merge(df_obs, df_pron, on='fecha_hora', how='outer').sort_values('fecha_hora')
+    return df_merged[['fecha_hora', 'observado', 'pronostico']]
