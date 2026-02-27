@@ -18,6 +18,8 @@ from scipy.stats import norm
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+PRODUCTION_DB_HOST = os.getenv('DB_HOST', '132.248.8.152')
+
 class PostgresConnection:
     """Maneja la conexión a PostgreSQL con las nuevas tablas de pronóstico"""
     
@@ -26,37 +28,44 @@ class PostgresConnection:
         self._connect()
     
     def _connect(self):
-        """Establece conexión a PostgreSQL usando credenciales AMATE-SOLOREAD (igual que config.py)"""
+        """Establece conexión a PostgreSQL usando credenciales AMATE-SOLOREAD"""
         def get_db_credentials():
             """Obtiene credenciales de BD desde .netrc"""
             try:
                 n = netrc.netrc()
                 login, account, password = n.authenticators('AMATE-SOLOREAD')
-                return login, password, account
+                return login, password
             except (FileNotFoundError, netrc.NetrcParseError):
-                # Fallback a variables de entorno
-                return os.getenv('DB_USER'), os.getenv('DB_PASSWORD'), os.getenv('DB_HOST')
+                return os.getenv('DB_USER'), os.getenv('DB_PASSWORD')
+        
+        login, password = get_db_credentials()
+        
+        if not login or not password:
+            raise RuntimeError(
+                "No se encontraron credenciales válidas para PostgreSQL. "
+                "Verifica que exista ~/.netrc con la entrada AMATE-SOLOREAD "
+                "o define DB_USER y DB_PASSWORD como variables de entorno."
+            )
+        
+        host = PRODUCTION_DB_HOST
+        database = os.getenv('DB_NAME', 'contingencia')
+        port = int(os.getenv('DB_PORT', '5432'))
+        
+        logger.info(f"Conectando a PostgreSQL en {host}:{port}/{database} como {login}")
         
         try:
-            # Obtener credenciales (igual que config.py)
-            login, password, account = get_db_credentials()
-            
-            # Configuración de conexión
-            host = account or os.getenv('DB_HOST', 'localhost')
-            database = os.getenv('DB_NAME', 'contingencia')
-            
             self.connection = psycopg2.connect(
                 database=database,
-                user=login or os.getenv('DB_USER', 'postgres'),
+                user=login,
                 host=host,
-                password=password or os.getenv('DB_PASSWORD', ''),
-                port=int(os.getenv('DB_PORT', '5432'))
+                password=password,
+                port=port
             )
             
             logger.info(f"✅ Conectado a PostgreSQL en {host}/{database}")
             
         except Exception as e:
-            logger.error(f"❌ Error conectando a PostgreSQL: {e}")
+            logger.error(f"❌ Error conectando a PostgreSQL en {host}:{port}/{database}: {e}")
             self.connection = None
     
     def is_connected(self) -> bool:

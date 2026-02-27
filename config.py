@@ -107,15 +107,14 @@ class AppConfig:
             try:
                 n = netrc.netrc()
                 login, account, password = n.authenticators('AMATE-SOLOREAD')
-                return login, password, account
+                return login, password
             except (FileNotFoundError, netrc.NetrcParseError):
-                # Fallback a variables de entorno
-                return os.getenv('DB_USER'), os.getenv('DB_PASSWORD'), os.getenv('DB_HOST')
+                return os.getenv('DB_USER'), os.getenv('DB_PASSWORD')
 
         # Configuración PostgreSQL de producción
-        login, password, account = get_db_credentials()
+        login, password = get_db_credentials()
         self.db_config = {
-            'host': account or os.getenv('DB_HOST', 'localhost'),
+            'host': os.getenv('DB_HOST', '132.248.8.152'),
             'port': os.getenv('DB_PORT', '5432'),
             'database': os.getenv('DB_NAME', 'contingencia'),
             'user': login or 'forecast_user',
