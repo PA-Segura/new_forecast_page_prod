@@ -17,6 +17,7 @@ plotly==5.17.0
 
 # Utilidades
 python-dotenv>=1.0.0
+requests>=2.31.0
 
 # Estadísticas (para cálculos de probabilidad)
 scipy>=1.10.0
