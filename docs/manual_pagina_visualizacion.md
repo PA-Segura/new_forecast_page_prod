@@ -27,7 +27,7 @@ La página principal presenta el pronóstico actual de calidad del aire por ozon
 
 ### 3.1 Mapa Interactivo de Estaciones
 
-![Mapa de pronóstico de calidad del aire](assets/mapa_forecast.png)
+![Mapa de pronóstico de calidad del aire](../assets/mapa_forecast.png)
 
 El mapa muestra las estaciones de monitoreo de la ZMVM como puntos coloreados según la **concentración máxima de ozono pronosticada para las próximas 24 horas**. Los colores corresponden a la clasificación de calidad del aire:
 
@@ -56,7 +56,7 @@ Este resumen indica cuál es la estación donde se espera la mayor concentració
 
 ### 3.3 Selector de Estación
 
-![Menú desplegable para selección de estación](assets/sel_est_dropmenu.png)
+![Menú desplegable para selección de estación](../assets/sel_est_dropmenu.png)
 
 En la sección de la serie de tiempo de ozono se encuentra un **menú desplegable** que permite seleccionar la estación de monitoreo de interés. Al cambiar la estación seleccionada:
 - Se actualiza la serie de tiempo de ozono.
@@ -65,7 +65,7 @@ En la sección de la serie de tiempo de ozono se encuentra un **menú desplegabl
 
 ### 3.4 Serie de Tiempo de Ozono
 
-![Serie de tiempo de concentraciones de ozono](assets/serie_tiempo_ozono.png)
+![Serie de tiempo de concentraciones de ozono](../assets/serie_tiempo_ozono.png)
 
 El gráfico de serie de tiempo muestra las concentraciones horarias de ozono en partes por billón (ppb). En el título se indica la fecha y hora del último pronóstico disponible.
 
@@ -108,7 +108,7 @@ En esta sección se cuenta con un menú desplegable para seleccionar la estació
 
 ### 4.2 Series de Tiempo de PM10 y PM2.5
 
-![Series de tiempo de concentraciones de PM10 y PM2.5](assets/series_tiempo_pms.png)
+![Series de tiempo de concentraciones de PM10 y PM2.5](../assets/series_tiempo_pms.png)
 
 Se presentan dos gráficos separados:
 
@@ -197,7 +197,7 @@ Los indicadores de probabilidad muestran la estimación del modelo sobre la prob
 
 #### 7.4.1 Formulación Matemática
 
-Las probabilidades se calculan modelando el error del pronóstico como una variable aleatoria con distribución normal. Sea {y}_t el valor pronosticado para la hora t, y sea  e = y - \hat{y} el error de pronóstico, donde y es el valor real observado. Se asume que el error sigue una distribución normal:
+Las probabilidades se calculan modelando el error del pronóstico como una variable aleatoria con distribución normal. Sea y_t el valor pronosticado para la hora t, y sea  e = y - \hat{y} el error de pronóstico, donde y es el valor real observado. Se asume que el error sigue una distribución normal:
 ![Distribución del error e = y - ŷ](../assets/e_y_ydot__e_N_mu_sigma.png)
 
 
@@ -207,15 +207,11 @@ donde \mu  y \sigma son la media y desviación estándar del error, estimados a 
 
 Para los umbrales puntuales, se utiliza el máximo valor pronosticado en las próximas 24 horas por estación dada:
 
-\[
-\hat{y}_{\max} = \max_{t=1}^{24} \hat{y}_t
-\]
+![Cálculo del máximo pronóstico en 24 horas](../assets/ydot_max_max24ydot.png)
 
 La probabilidad de que el valor real supere un umbral \( T \) se calcula como:
 
-\[
-P(y > T) = P(\hat{y}_{\max} + e > T) = P\left(e > T - \hat{y}_{\max}\right) = 1 - \Phi\left(\frac{T - \hat{y}_{\max} - \mu}{\sigma}\right)
-\]
+![Probabilidad de exceder umbral P(y > T)](../assets/P_ymoreT.png)
 
 donde \( \Phi \) es la función de distribución acumulada (CDF) de la distribución normal estándar.
 
@@ -232,10 +228,7 @@ Se calcula el promedio móvil centrado de 8 horas sobre el vector de pronóstico
 \]
 
 Para cada ventana de 8 horas, se calcula la probabilidad de que el promedio real supere el umbral \( T = 50 \) ppb:
-
-\[
-P\left(\bar{y}_t^{(8)} + e > T\right) = 1 - \Phi\left(\frac{T - \bar{y}_t^{(8)} - \mu}{\sigma}\right)
-\]
+![Probabilidad de que la media móvil de 8 horas supere 50 ppb](../assets/P_yup8_t_plus_emore50.png)
 
 Los parámetros del error para la media móvil de 8 horas son:
 - \( \mu = -0.43 \) ppb
@@ -243,10 +236,7 @@ Los parámetros del error para la media móvil de 8 horas son:
 
 El indicador final reporta la probabilidad máxima entre todas las ventanas de 8 horas en las 24 horas pronosticadas:
 
-\[
-P_{\text{indicador}} = \max_{t} \; P\left(\bar{y}_t^{(8)} + e > 50\right)
-\]
-
+![Fórmula del indicador de probabilidad de media móvil 8 horas](../assets/P_indicador8.png)
 
 ---
 

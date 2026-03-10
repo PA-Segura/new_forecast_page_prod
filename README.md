@@ -176,4 +176,5 @@ new_forecast_page_prod/
 ├── callbacks.py                    # Callbacks de Dash
 ├── postgres_data_service.py        # Servicio de datos PostgreSQL
 └── assets/                         # Archivos estáticos (imágenes, JSON, etc.)
+└── README.md                       # Archivo README principal del proyeco 
 ```
